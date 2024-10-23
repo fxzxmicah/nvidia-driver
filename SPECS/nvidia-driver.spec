@@ -1,141 +1,151 @@
 %define kernel_ver %(rpm -q --qf "%%{VERSION}-%%{RELEASE}" kernel-devel)
 
-Name:           nvidia-driver
-Version:        560.35.03
-Release:        1%{?dist}
-Summary:        NVIDIA binary driver for Linux
-License:        NVIDIA
-URL:            http://www.nvidia.com/
-Source0:        https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
-Source1:        https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
-Source2:        nvidia-modsign-key-ABE56D9A.key
-Source3:        nvidia-modsign-crt-ABE56D9A.der
+Name:               nvidia-driver
+Version:            560.35.03
+Release:            1%{?dist}
+Summary:            NVIDIA binary driver for Linux
+License:            NVIDIA
+URL:                http://www.nvidia.com/
+Source0:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
+Source1:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
+Source2:            nvidia-modsign-key-ABE56D9A.key
+Source3:            nvidia-modsign-crt-ABE56D9A.der
 
-BuildRequires:  gcc
-BuildRequires:  make
-BuildRequires:  kernel-devel
-BuildRequires:  openssl
-BuildRequires:  systemd
+BuildRequires:      gcc
+BuildRequires:      make
+BuildRequires:      kernel-devel
+BuildRequires:      openssl
+BuildRequires:      systemd-rpm-macros
 
-Requires:       kernel = %{kernel_ver}
-Requires:       nvidia-modules = %{version}-%{release}
+Requires:           kernel = %{kernel_ver}
+Requires:           nvidia-modules = %{version}-%{release}
+
+Requires(post):     systemd
+Requires(preun):    systemd
+Requires(postun):   systemd
 
 %description
 The NVIDIA Linux graphics driver.
 
 %package -n nvidia-modules
-Summary:        NVIDIA kernel modules
-Group:          System Environment/Kernel
+Summary:            NVIDIA kernel modules
+Group:              System Environment/Kernel
 
 %description -n nvidia-modules
 NVIDIA Linux graphics kernel modules
 
 %package -n nvidia-wayland
-Summary:        NVIDIA Wayland libraries
+Summary:            NVIDIA Wayland libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-wayland
 NVIDIA Wayland libraries
 
 %package -n nvidia-gbm
-Summary:        NVIDIA GBM libraries
+Summary:            NVIDIA GBM libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-gbm
 NVIDIA GBM libraries
 
 %package -n nvidia-opencl
-Summary:        NVIDIA OpenCL libraries
+Summary:            NVIDIA OpenCL libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-opencl
 NVIDIA OpenCL libraries
 
 %package -n nvidia-cuda
-Summary:        NVIDIA CUDA libraries
+Summary:            NVIDIA CUDA libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-cuda
 NVIDIA CUDA libraries
 
 %package -n nvidia-vision
-Summary:        NVIDIA Vision libraries
+Summary:            NVIDIA Vision libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-vision
 NVIDIA Vision libraries
 
 %package -n nvidia-vdpau
-Summary:        NVIDIA VDPAU libraries
+Summary:            NVIDIA VDPAU libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-vdpau
 NVIDIA VDPAU libraries
 
 %package -n nvidia-persistenced
-Summary:        NVIDIA Persistenced Utilities
+Summary:            NVIDIA Persistenced Utilities
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-persistenced
 NVIDIA Persistenced Utilities
 
 %package -n nvidia-powerd
-Summary:        NVIDIA Powerd Utilities
+Summary:            NVIDIA Powerd Utilities
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-powerd
 NVIDIA Powerd Utilities
 
 %package -n nvidia-settings
-Summary:        NVIDIA Settings Application
+Summary:            NVIDIA Settings Application
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
+
+Requires:           dbus
+
+Requires(post):     systemd
+Requires(preun):    systemd
+Requires(postun):   systemd
 
 %description -n nvidia-settings
 NVIDIA Settings Application
 
 %package -n nvidia-X
-Summary:        NVIDIA X drivers
+Summary:            NVIDIA X drivers
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-X
 NVIDIA X drivers
 
 %package -n nvidia-ngx
-Summary:        NVIDIA NGX Utilities
+Summary:            NVIDIA NGX Utilities
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
 
 %package -n nvidia-security
-Summary:        NVIDIA Security Libraries
+Summary:            NVIDIA Security Libraries
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-security
 NVIDIA Security Libraries
 
 %package -n nvidia-utils
-Summary:        NVIDIA Utilities
+Summary:            NVIDIA Utilities
 
-Requires: %{name} = %{version}-%{release}
+Requires:           %{name} = %{version}-%{release}
 
 %description -n nvidia-utils
 NVIDIA Utilities
 
 %package -n nvidia-devel
-Summary:        NVIDIA Development Files
+Summary:            NVIDIA Development Files
 
 %description -n nvidia-devel
 NVIDIA Development Files
@@ -388,7 +398,7 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 /lib/firmware/nvidia/%{version}/*
 /lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*
 %dir %{_datadir}/nvidia
-%{_datadir}/nvidia/nvidia-modsign-*
+%{_datadir}/nvidia/nvidia-modsign-*.der
 
 %files -n nvidia-wayland
 %defattr(-,root,root,-)
