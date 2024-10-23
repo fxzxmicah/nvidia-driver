@@ -154,7 +154,7 @@ NVIDIA Development Files
 cd %{_sourcedir}
 #verify sha256sum
 sha256sum -c NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
-sh %{Source0} --extract-only --target %{_builddir}/%{name}-%{version}
+sh %{SOURCE0} --extract-only --target %{_builddir}/%{name}-%{version}
 mkdir -p %{buildroot}%{_prefix}/src
 cp -r %{_builddir}/%{name}-%{version}/kernel %{buildroot}%{_prefix}/src/nvidia-%{version}
 
@@ -167,7 +167,7 @@ export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
 %install
 cd %{_builddir}/%{name}-%{version}
 
-%{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file sha256 %{Source2} %{Source3} *.ko
+%{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file sha256 %{SOURCE2} %{SOURCE3} *.ko
 
 mkdir -p %{buildroot}/lib/firmware/nvidia/%{version}
 mkdir -p %{buildroot}%{_mandir}/man1
@@ -261,7 +261,7 @@ mv libnvidia-pkcs11-openssl3.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
 
-cp -r %{Source3} %{buildroot}%{_datadir}/nvidia
+cp -r %{SOURCE3} %{buildroot}%{_datadir}/nvidia
 
 # Create symbolic links
 cd %{buildroot}%{_libdir}
