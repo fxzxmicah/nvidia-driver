@@ -14,7 +14,6 @@ Source3:            nvidia-modsign-crt-ABE56D9A.der
 BuildRequires:      gcc
 BuildRequires:      make
 BuildRequires:      kernel-devel
-BuildRequires:      openssl
 BuildRequires:      systemd-rpm-macros
 
 Requires:           kernel = %{kernel_ver}
@@ -24,15 +23,17 @@ Requires(post):     systemd
 Requires(preun):    systemd
 Requires(postun):   systemd
 
+ExclusiveArch:      x86_64
+
 %description
 The NVIDIA Linux graphics driver.
 
 %package -n nvidia-modules
-Summary:            NVIDIA kernel modules
+Summary:            NVIDIA graphics kernel modules
 Group:              System Environment/Kernel
 
 %description -n nvidia-modules
-NVIDIA Linux graphics kernel modules
+NVIDIA graphics kernel modules (Closed Source Version)
 
 %package -n nvidia-wayland
 Summary:            NVIDIA Wayland libraries
@@ -125,6 +126,8 @@ Summary:            NVIDIA NGX Utilities
 
 Requires:           %{name} = %{version}-%{release}
 
+Requires:           xorg-x11-server-Xorg
+
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
 
@@ -153,23 +156,26 @@ NVIDIA Development Files
 %prep
 cd %{_sourcedir}
 #verify sha256sum
-sha256sum -c NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
-sh %{SOURCE0} --extract-only --target %{_builddir}/%{name}-%{version}
-mkdir -p %{buildroot}%{_prefix}/src
-cp -r %{_builddir}/%{name}-%{version}/kernel %{buildroot}%{_prefix}/src/nvidia-%{version}
+sha256sum -c %{SOURCE1}
+
+rm -r %{_builddir}
+sh %{SOURCE0} --extract-only --target %{_builddir}
 
 %build
-cd %{_builddir}/%{name}-%{version}
-export KERNEL_UNAME=%{kernel_ver}.%{_arch}
+cd %{_builddir}/kernel
+export SYSSRC=%{_prefix}/src/kernels/%{kernel_ver}.%{_arch}
+export SYSOUT=$SYSSRC
 export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
 %{make_build} modules
 
 %install
-cd %{_builddir}/%{name}-%{version}
-
-%{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file sha256 %{SOURCE2} %{SOURCE3} *.ko
+#chmod +x %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file
+for module in kernel/*.ko; do
+    %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file sha256 %{SOURCE2} %{SOURCE3} $module
+done
 
 mkdir -p %{buildroot}/lib/firmware/nvidia/%{version}
+mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_mandir}/man1
 mkdir -p %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_unitdir}-sleep
@@ -182,12 +188,14 @@ mkdir -p %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d
 mkdir -p %{buildroot}%{_datadir}/nvidia
 mkdir -p %{buildroot}%{_datadir}/glvnd/egl_vendor.d
 mkdir -p %{buildroot}%{_libdir}/xorg/modules/extensions
+mkdir -p %{buildroot}%{_datadir}/X11/xorg.conf.d
 mkdir -p %{buildroot}%{_datadir}/egl/egl_external_platform.d
 mkdir -p %{buildroot}%{_libdir}/xorg/modules/drivers
 mkdir -p %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
 mkdir -p %{buildroot}%{_libdir}/vdpau
 mkdir -p %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video
 mkdir -p %{buildroot}%{_datadir}/applications
+mkdir -p %{buildroot}%{_prefix}/src/nvidia-%{version}
 
 mv firmware/* %{buildroot}/lib/firmware/nvidia/%{version}
 mv nvidia-bug-report.sh %{buildroot}%{_bindir}
@@ -221,12 +229,13 @@ mv libnvidia-glcore.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-tls.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv nvidia_icd.json %{buildroot}%{_sysconfdir}/vulkan/icd.d
 mv nvidia_layers.json %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d
-mv nvidia-application-profiles-%{version}-* %{_datadir}/nvidia
+mv nvidia-application-profiles-%{version}-* %{buildroot}%{_datadir}/nvidia
 mv libGLX_nvidia.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-glsi.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-glvkspirv.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv 10_nvidia.json %{buildroot}%{_datadir}/glvnd/egl_vendor.d
 mv libglxserver_nvidia.so.%{version} %{buildroot}%{_libdir}/xorg/modules/extensions
+mv nvidia-drm-outputclass.conf %{buildroot}%{_datadir}/X11/xorg.conf.d
 mv libnvidia-eglcore.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libEGL_nvidia.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libGLESv2_nvidia.so.%{version} %{buildroot}%{_libdir}/nvidia
@@ -260,6 +269,7 @@ mv libnvidia-pkcs11.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-pkcs11-openssl3.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
+mv kernel/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
 cp -r %{SOURCE3} %{buildroot}%{_datadir}/nvidia
 
@@ -296,8 +306,8 @@ ln -sr nvidia/libnvidia-gtk3.so.%{version} libnvidia-gtk3.so.0
 ln -sr nvidia/libnvidia-wayland-client.so.%{version} libnvidia-wayland-client.so.0
 ln -sr nvidia/libnvidia-cfg.so.%{version} libnvidia-cfg.so.1
 ln -sr libnvidia-cfg.so.1 libnvidia-cfg.so
-ln -sr nvidia/vdpau/libvdpau_nvidia.so.%{version} nvidia/vdpau/libvdpau_nvidia.so.1
-ln -sr nvidia/vdpau/libvdpau_nvidia.so.1 libvdpau_nvidia.so
+ln -sr vdpau/libvdpau_nvidia.so.%{version} vdpau/libvdpau_nvidia.so.1
+ln -sr vdpau/libvdpau_nvidia.so.1 libvdpau_nvidia.so
 ln -sr nvidia/libnvidia-allocator.so.%{version} libnvidia-allocator.so.1
 ln -sr libnvidia-allocator.so.1 libnvidia-allocator.so
 ln -sr nvidia/libnvidia-rtcore.so.%{version} libnvidia-rtcore.so.1
@@ -343,8 +353,8 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %license LICENSE
 %doc README.txt
 %doc NVIDIA_Changelog
-%doc html/
-%doc supported-gpus/
+%doc html
+%doc supported-gpus
 %{_bindir}/nvidia-modprobe
 %{_bindir}/nvidia-sleep.sh
 %{_bindir}/nvidia-smi
@@ -434,10 +444,9 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %{_libdir}/nvidia/libcudadebugger.so.%{version}
 %{_libdir}/libcudadebugger.so.1
 %{_libdir}/nvidia/libnvidia-nvvm.so.%{version}
-%{_libdir}/libnvidia-nvvm.so.1
+%{_libdir}/libnvidia-nvvm.so.4
 %{_libdir}/libnvidia-nvvm.so
 %{_mandir}/man1/nvidia-cuda-mps-control.1.gz
-%{_mandir}/man1/nvidia-cuda-mps-server.1.gz
 
 %files -n nvidia-vision
 %defattr(-,root,root,-)
@@ -460,7 +469,6 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %defattr(-,root,root,-)
 %dir %{_libdir}/vdpau
 %{_libdir}/vdpau/*
-%{_libdir}/libvdpau_nvidia.so.1
 %{_libdir}/libvdpau_nvidia.so
 
 %files -n nvidia-persistenced
@@ -473,7 +481,7 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %defattr(-,root,root,-)
 %{_bindir}/nvidia-powerd
 %{_unitdir}/nvidia-powerd.service
-%{_datadir}/dbus-1/system.d/nvidia-powerd.conf
+%{_datadir}/dbus-1/system.d/nvidia-dbus.conf
 
 %files -n nvidia-settings
 %defattr(-,root,root,-)
@@ -494,8 +502,8 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %{_libdir}/nvidia/libnvidia-fbc.so.%{version}
 %{_libdir}/libnvidia-fbc.so.1
 %{_libdir}/libnvidia-fbc.so
-%dir %{_libdir}/xorg
 %{_libdir}/xorg/**
+%{_datadir}/X11/xorg.conf.d/*
 %{_mandir}/man1/nvidia-xconfig.1.gz
 
 %files -n nvidia-ngx
