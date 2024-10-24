@@ -25,7 +25,7 @@ jobs:
 
     - name: Check
       run: |
-        ls -l BUILD/*/*
+        ls -l BUILD/*
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
