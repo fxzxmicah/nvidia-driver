@@ -287,30 +287,30 @@ ln -sr libnvidia-ptxjitcompiler.so.1 libnvidia-ptxjitcompiler.so
 ln -sr nvidia/libcudadebugger.so.%{version} libcudadebugger.so.1
 ln -sr nvidia/libnvidia-nvvm.so.%{version} libnvidia-nvvm.so.4
 ln -sr libnvidia-nvvm.so.4 libnvidia-nvvm.so
-ln -sr nvidia/libnvidia-gpucomp.so.%{version} libnvidia-gpucomp.so.1
+ln -sr nvidia/libnvidia-gpucomp.so.%{version} libnvidia-gpucomp.so.%{version}
 ln -sr nvidia/libnvidia-api.so.* libnvidia-api.so.1
-ln -sr nvidia/libnvidia-glcore.so.%{version} libnvidia-glcore.so.1
-ln -sr nvidia/libnvidia-tls.so.%{version} libnvidia-tls.so.1
+ln -sr nvidia/libnvidia-glcore.so.%{version} libnvidia-glcore.so.%{version}
+ln -sr nvidia/libnvidia-tls.so.%{version} libnvidia-tls.so.%{version}
 ln -sr nvidia/libGLX_nvidia.so.%{version} libGLX_nvidia.so.0
-ln -sr nvidia/libnvidia-glsi.so.%{version} libnvidia-glsi.so.1
-ln -sr nvidia/libnvidia-glvkspirv.so.%{version} libnvidia-glvkspirv.so.1
+ln -sr nvidia/libnvidia-glsi.so.%{version} libnvidia-glsi.so.%{version}
+ln -sr nvidia/libnvidia-glvkspirv.so.%{version} libnvidia-glvkspirv.so.%{version}
 ln -sr xorg/modules/extensions/libglxserver_nvidia.so.%{version} xorg/modules/extensions/libglxserver_nvidia.so
-ln -sr nvidia/libnvidia-eglcore.so.%{version} libnvidia-eglcore.so.1
+ln -sr nvidia/libnvidia-eglcore.so.%{version} libnvidia-eglcore.so.%{version}
 ln -sr nvidia/libEGL_nvidia.so.%{version} libEGL_nvidia.so.0
 ln -sr nvidia/libGLESv2_nvidia.so.%{version} libGLESv2_nvidia.so.2
 ln -sr nvidia/libGLESv1_CM_nvidia.so.%{version} libGLESv1_CM_nvidia.so.1
 ln -sr nvidia/libnvidia-egl-wayland.so.* libnvidia-egl-wayland.so.1
 ln -sr nvidia/libnvidia-egl-gbm.so.* libnvidia-egl-gbm.so.1
-ln -sr nvidia/libnvidia-gtk2.so.%{version} libnvidia-gtk2.so.0
-ln -sr nvidia/libnvidia-gtk3.so.%{version} libnvidia-gtk3.so.0
-ln -sr nvidia/libnvidia-wayland-client.so.%{version} libnvidia-wayland-client.so.0
+ln -sr nvidia/libnvidia-gtk2.so.%{version} libnvidia-gtk2.so.%{version}
+ln -sr nvidia/libnvidia-gtk3.so.%{version} libnvidia-gtk3.so.%{version}
+ln -sr nvidia/libnvidia-wayland-client.so.%{version} libnvidia-wayland-client.so.%{version}
 ln -sr nvidia/libnvidia-cfg.so.%{version} libnvidia-cfg.so.1
 ln -sr libnvidia-cfg.so.1 libnvidia-cfg.so
 ln -sr vdpau/libvdpau_nvidia.so.%{version} vdpau/libvdpau_nvidia.so.1
 ln -sr vdpau/libvdpau_nvidia.so.1 libvdpau_nvidia.so
 ln -sr nvidia/libnvidia-allocator.so.%{version} libnvidia-allocator.so.1
 ln -sr libnvidia-allocator.so.1 libnvidia-allocator.so
-ln -sr nvidia/libnvidia-rtcore.so.%{version} libnvidia-rtcore.so.1
+ln -sr nvidia/libnvidia-rtcore.so.%{version} libnvidia-rtcore.so.%{version}
 ln -sr nvidia/libnvoptix.so.%{version} libnvoptix.so.1
 ln -sr nvidia/libnvidia-ngx.so.%{version} libnvidia-ngx.so.1
 ln -sr nvidia/libnvidia-fbc.so.%{version} libnvidia-fbc.so.1
@@ -321,8 +321,12 @@ ln -sr nvidia/libnvidia-encode.so.%{version} libnvidia-encode.so.1
 ln -sr libnvidia-encode.so.1 libnvidia-encode.so
 ln -sr nvidia/libnvidia-opticalflow.so.%{version} libnvidia-opticalflow.so.1
 ln -sr libnvidia-opticalflow.so.1 libnvidia-opticalflow.so
-ln -sr nvidia/libnvidia-pkcs11.so.%{version} libnvidia-pkcs11.so.1
-ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.so.1
+ln -sr nvidia/libnvidia-pkcs11.so.%{version} libnvidia-pkcs11.so.%{version}
+ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.so.%{version}
+
+cd %{buildroot}%{_prefix}/src/nvidia-%{version}
+ln -srf nvidia-modeset/nv-modeset-kernel.o_binary nvidia-modeset/nv-modeset-kernel.o
+ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 
 %post
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
@@ -363,21 +367,21 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %{_libdir}/libnvidia-ml.so.1
 %{_libdir}/libnvidia-ml.so
 %{_libdir}/nvidia/libnvidia-gpucomp.so.%{version}
-%{_libdir}/libnvidia-gpucomp.so.1
+%{_libdir}/libnvidia-gpucomp.so.%{version}
 %{_libdir}/nvidia/libnvidia-api.so.*
 %{_libdir}/libnvidia-api.so.1
 %{_libdir}/nvidia/libnvidia-glcore.so.%{version}
-%{_libdir}/libnvidia-glcore.so.1
+%{_libdir}/libnvidia-glcore.so.%{version}
 %{_libdir}/nvidia/libnvidia-tls.so.%{version}
-%{_libdir}/libnvidia-tls.so.1
+%{_libdir}/libnvidia-tls.so.%{version}
 %{_libdir}/nvidia/libGLX_nvidia.so.%{version}
 %{_libdir}/libGLX_nvidia.so.0
 %{_libdir}/nvidia/libnvidia-glsi.so.%{version}
-%{_libdir}/libnvidia-glsi.so.1
+%{_libdir}/libnvidia-glsi.so.%{version}
 %{_libdir}/nvidia/libnvidia-glvkspirv.so.%{version}
-%{_libdir}/libnvidia-glvkspirv.so.1
+%{_libdir}/libnvidia-glvkspirv.so.%{version}
 %{_libdir}/nvidia/libnvidia-eglcore.so.%{version}
-%{_libdir}/libnvidia-eglcore.so.1
+%{_libdir}/libnvidia-eglcore.so.%{version}
 %{_libdir}/nvidia/libEGL_nvidia.so.%{version}
 %{_libdir}/libEGL_nvidia.so.0
 %{_libdir}/nvidia/libGLESv2_nvidia.so.%{version}
@@ -451,7 +455,7 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %files -n nvidia-vision
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvidia-rtcore.so.%{version}
-%{_libdir}/libnvidia-rtcore.so.1
+%{_libdir}/libnvidia-rtcore.so.%{version}
 %{_libdir}/nvidia/libnvoptix.so.%{version}
 %{_libdir}/libnvoptix.so.1
 %{_libdir}/nvidia/libnvcuvid.so.%{version}
@@ -487,11 +491,11 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %defattr(-,root,root,-)
 %{_bindir}/nvidia-settings
 %{_libdir}/nvidia/libnvidia-gtk2.so.%{version}
-%{_libdir}/libnvidia-gtk2.so.0
+%{_libdir}/libnvidia-gtk2.so.%{version}
 %{_libdir}/nvidia/libnvidia-gtk3.so.%{version}
-%{_libdir}/libnvidia-gtk3.so.0
+%{_libdir}/libnvidia-gtk3.so.%{version}
 %{_libdir}/nvidia/libnvidia-wayland-client.so.%{version}
-%{_libdir}/libnvidia-wayland-client.so.0
+%{_libdir}/libnvidia-wayland-client.so.%{version}
 %{_datadir}/icons/hicolor/128x128/apps/nvidia-settings.png
 %{_datadir}/applications/nvidia-settings.desktop
 %{_mandir}/man1/nvidia-settings.1.gz
@@ -515,9 +519,9 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 %files -n nvidia-security
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvidia-pkcs11.so.%{version}
-%{_libdir}/libnvidia-pkcs11.so.1
+%{_libdir}/libnvidia-pkcs11.so.%{version}
 %{_libdir}/nvidia/libnvidia-pkcs11-openssl3.so.%{version}
-%{_libdir}/libnvidia-pkcs11-openssl3.so.1
+%{_libdir}/libnvidia-pkcs11-openssl3.so.%{version}
 
 %files -n nvidia-utils
 %defattr(-,root,root,-)
