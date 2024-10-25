@@ -2,169 +2,173 @@
 
 %define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
 
-Name:               nvidia-driver
-Version:            560.35.03
-Release:            1%{?dist}
-Summary:            NVIDIA binary driver for Linux
-License:            NVIDIA
-URL:                http://www.nvidia.com/
-Source0:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
-Source1:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
+Name:                   nvidia-driver
+Version:                560.35.03
+Release:                1%{?dist}
+Summary:                NVIDIA binary driver for Linux
+License:                NVIDIA
+URL:                    http://www.nvidia.com/
+Source0:                https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
+Source1:                https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
 
-Source2:            nouveau.conf
-Source3:            nvidia.conf
-Source4:            86-nvidia-driver.preset
+Source2:                nouveau.conf
+Source3:                nvidia.conf
+Source4:                86-nvidia-driver.preset
 
-BuildRequires:      gcc
-BuildRequires:      make
-BuildRequires:      kernel-devel
-BuildRequires:      systemd-rpm-macros
-BuildRequires:      jq
+BuildRequires:          gcc
+BuildRequires:          make
+BuildRequires:          kernel-devel
+BuildRequires:          systemd-rpm-macros
+BuildRequires:          jq
 
-Requires:           kernel(x86-64) = %{kernel_ver}
-Requires:           nvidia-modules = %{version}-%{release}
+Requires:               nvidia-modules = %{version}-%{release}
 
-Requires:           systemd
+Requires:               systemd
 
-ExclusiveArch:      x86_64
+ExclusiveArch:          x86_64
 
 %description
 The NVIDIA Linux graphics driver.
 
 %package -n nvidia-modules
-Summary:            NVIDIA graphics kernel modules
-Group:              System Environment/Kernel
+Summary:                NVIDIA graphics kernel modules
+Group:                  System Environment/Kernel
 
-Requires(post):     /usr/bin/base64
-Requires(post):     /usr/bin/tee
-Requires(post):     libcrypto.so.3()(64bit)
-Requires(post):     libc.so.6()(64bit)
-Requires(post):     libz.so.1()(64bit)
-Requires(post):     ld-linux-x86-64.so.2()(64bit)
+Requires:               kernel(x86-64) = %{kernel_ver}
+
+Requires(post):         /usr/bin/base64
+Requires(post):         /usr/bin/tee
+Requires(post):         libcrypto.so.3()(64bit)
+Requires(post):         libc.so.6()(64bit)
+Requires(post):         libz.so.1()(64bit)
+Requires(post):         ld-linux-x86-64.so.2()(64bit)
+
+Requires(posttrans):    /usr/bin/kernel-install
 
 %description -n nvidia-modules
 NVIDIA graphics kernel modules (Closed Source Version)
 
 %package -n nvidia-egl
-Summary:            NVIDIA EGL libraries
+Summary:                NVIDIA EGL libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-egl
 NVIDIA EGL libraries
 
 %package -n nvidia-wayland
-Summary:            NVIDIA Wayland libraries
+Summary:                NVIDIA Wayland libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-wayland
 NVIDIA Wayland libraries
 
 %package -n nvidia-gbm
-Summary:            NVIDIA GBM libraries
+Summary:                NVIDIA GBM libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-gbm
 NVIDIA GBM libraries
 
 %package -n nvidia-opencl
-Summary:            NVIDIA OpenCL libraries
+Summary:                NVIDIA OpenCL libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-opencl
 NVIDIA OpenCL libraries
 
 %package -n nvidia-cuda
-Summary:            NVIDIA CUDA libraries
+Summary:                NVIDIA CUDA libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-cuda
 NVIDIA CUDA libraries
 
 %package -n nvidia-vision
-Summary:            NVIDIA Vision libraries
+Summary:                NVIDIA Vision libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-vision
 NVIDIA Vision libraries
 
 %package -n nvidia-vdpau
-Summary:            NVIDIA VDPAU libraries
+Summary:                NVIDIA VDPAU libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-vdpau
 NVIDIA VDPAU libraries
 
 %package -n nvidia-persistenced
-Summary:            NVIDIA Persistenced Utilities
+Summary:                NVIDIA Persistenced Utilities
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-persistenced
 NVIDIA Persistenced Utilities
 
 %package -n nvidia-powerd
-Summary:            NVIDIA Powerd Utilities
+Summary:                NVIDIA Powerd Utilities
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
-Requires:           dbus
-Requires:           systemd
+Requires:               dbus
+Requires:               systemd
 
 %description -n nvidia-powerd
 NVIDIA Powerd Utilities
 
 %package -n nvidia-settings
-Summary:            NVIDIA Settings Application
+Summary:                NVIDIA Settings Application
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-settings
 NVIDIA Settings Application
 
 %package -n nvidia-X
-Summary:            NVIDIA X drivers
+Summary:                NVIDIA X drivers
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
-Requires:           xorg-x11-server-Xorg
-Requires(post):     jq
+Requires:               xorg-x11-server-Xorg
+
+Requires(post):         jq
 
 %description -n nvidia-X
 NVIDIA X drivers
 
 %package -n nvidia-ngx
-Summary:            NVIDIA NGX Utilities
+Summary:                NVIDIA NGX Utilities
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
 
 %package -n nvidia-security
-Summary:            NVIDIA Security Libraries
+Summary:                NVIDIA Security Libraries
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-security
 NVIDIA Security Libraries
 
 %package -n nvidia-utils
-Summary:            NVIDIA Utilities
+Summary:                NVIDIA Utilities
 
-Requires:           %{name} = %{version}-%{release}
+Requires:               %{name} = %{version}-%{release}
 
 %description -n nvidia-utils
 NVIDIA Utilities
 
 %package -n nvidia-devel
-Summary:            NVIDIA Development Files
+Summary:                NVIDIA Development Files
 
 %description -n nvidia-devel
 NVIDIA Development Files
@@ -367,11 +371,13 @@ if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.de
     done
     rm -f %{_tmppath}/sign-file
 fi
-dracut --force %{kernel_ver}.%{_arch}
 
 %post -n nvidia-X
 jq .ICD.library_path=\"libGLX_nvidia.so.0\" %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | tee %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
 jq .layers[0].library_path=\"libGLX_nvidia.so.0\" %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | tee %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+
+%posttrans -n nvidia-modules
+kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vmlinuz*
 
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
