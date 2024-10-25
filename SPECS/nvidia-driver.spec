@@ -1,4 +1,5 @@
 %define kernel_ver %(rpm -q --qf "%%{VERSION}-%%{RELEASE}" kernel-devel)
+
 %define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
 
 Name:               nvidia-driver
@@ -18,8 +19,10 @@ BuildRequires:      gcc
 BuildRequires:      make
 BuildRequires:      kernel-devel
 BuildRequires:      systemd-rpm-macros
+BuildRequires:      jq
+BuildRequires:      /usr/bin/sponge
 
-Requires:           kernel = %{kernel_ver}
+Requires:           kernel(x86-64) = %{kernel_ver}
 Requires:           nvidia-modules = %{version}-%{release}
 
 Requires:           systemd
@@ -33,7 +36,7 @@ The NVIDIA Linux graphics driver.
 Summary:            NVIDIA graphics kernel modules
 Group:              System Environment/Kernel
 
-Requires(post):     base64
+Requires(post):     /usr/bin/base64
 Requires(post):     libcrypto.so.3()(64bit)
 Requires(post):     libc.so.6()(64bit)
 Requires(post):     libz.so.1()(64bit)
@@ -41,6 +44,14 @@ Requires(post):     ld-linux-x86-64.so.2()(64bit)
 
 %description -n nvidia-modules
 NVIDIA graphics kernel modules (Closed Source Version)
+
+%package -n nvidia-egl
+Summary:            NVIDIA EGL libraries
+
+Requires:           %{name} = %{version}-%{release}
+
+%description -n nvidia-egl
+NVIDIA EGL libraries
 
 %package -n nvidia-wayland
 Summary:            NVIDIA Wayland libraries
@@ -122,6 +133,9 @@ Summary:            NVIDIA X drivers
 
 Requires:           %{name} = %{version}-%{release}
 
+Requires:           xorg-x11-server-Xorg
+Requires(post):     jq
+
 %description -n nvidia-X
 NVIDIA X drivers
 
@@ -129,8 +143,6 @@ NVIDIA X drivers
 Summary:            NVIDIA NGX Utilities
 
 Requires:           %{name} = %{version}-%{release}
-
-Requires:           xorg-x11-server-Xorg
 
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
@@ -159,7 +171,7 @@ NVIDIA Development Files
 
 %prep
 cd %{_sourcedir}
-#verify sha256sum
+# Verify sha256sum
 sha256sum -c %{SOURCE1}
 
 rm -r %{_builddir}
@@ -171,6 +183,9 @@ export SYSSRC=%{_prefix}/src/kernels/%{kernel_ver}.%{_arch}
 export SYSOUT=$SYSSRC
 export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
 %{make_build} modules
+
+# Strip modules
+strip --strip-unneeded *.ko
 
 %install
 mkdir -p %{buildroot}/lib/firmware/nvidia/%{version}
@@ -277,6 +292,9 @@ install -Dm0644 %{SOURCE2} -t %{buildroot}%{_prefix}/lib/modprobe.d
 install -Dm0644 %{SOURCE3} -t %{buildroot}%{_prefix}/lib/modprobe.d
 install -Dm0644 %{SOURCE4} -t %{buildroot}%{_unitdir}-preset
 
+jq .ICD.library_path = "libEGL_nvidia.so.0" %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | sponge %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+jq .layers[0].library_path = "libEGL_nvidia.so.0" %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | sponge %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+
 # Create symbolic links
 cd %{buildroot}%{_libdir}
 ln -sr nvidia/libnvidia-ml.so.%{version} libnvidia-ml.so.1
@@ -351,6 +369,10 @@ if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.de
 fi
 dracut --force %{kernel_ver}.%{_arch}
 
+%post -n nvidia-X
+jq .ICD.library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json > %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+jq .layers[0].library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json > %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
@@ -388,16 +410,10 @@ dracut --force %{kernel_ver}.%{_arch}
 %{_libdir}/libnvidia-glcore.so.%{version}
 %{_libdir}/nvidia/libnvidia-tls.so.%{version}
 %{_libdir}/libnvidia-tls.so.%{version}
-%{_libdir}/nvidia/libGLX_nvidia.so.%{version}
-%{_libdir}/libGLX_nvidia.so.0
 %{_libdir}/nvidia/libnvidia-glsi.so.%{version}
 %{_libdir}/libnvidia-glsi.so.%{version}
 %{_libdir}/nvidia/libnvidia-glvkspirv.so.%{version}
 %{_libdir}/libnvidia-glvkspirv.so.%{version}
-%{_libdir}/nvidia/libnvidia-eglcore.so.%{version}
-%{_libdir}/libnvidia-eglcore.so.%{version}
-%{_libdir}/nvidia/libEGL_nvidia.so.%{version}
-%{_libdir}/libEGL_nvidia.so.0
 %{_libdir}/nvidia/libGLESv2_nvidia.so.%{version}
 %{_libdir}/libGLESv2_nvidia.so.2
 %{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
@@ -413,11 +429,8 @@ dracut --force %{kernel_ver}.%{_arch}
 %{_unitdir}/nvidia-resume.service
 %{_unitdir}-sleep/*
 %{_unitdir}-preset/*
-%config %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-%config %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
 %dir %{_datadir}/nvidia
 %{_datadir}/nvidia/nvidia-*
-%{_datadir}/glvnd/egl_vendor.d/*
 %{_mandir}/man1/nvidia-modprobe.1.gz
 %{_mandir}/man1/nvidia-smi.1.gz
 
@@ -428,6 +441,16 @@ dracut --force %{kernel_ver}.%{_arch}
 /lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*
 %{_prefix}/lib/modprobe.d/*
 %config(noreplace) %ghost %{_sysconfdir}/keys/*
+
+%files -n nvidia-egl
+%defattr(-,root,root,-)
+%{_libdir}/nvidia/libnvidia-eglcore.so.%{version}
+%{_libdir}/libnvidia-eglcore.so.%{version}
+%{_libdir}/nvidia/libEGL_nvidia.so.%{version}
+%{_libdir}/libEGL_nvidia.so.0
+%config %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+%config %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+%{_datadir}/glvnd/egl_vendor.d/*
 
 %files -n nvidia-wayland
 %defattr(-,root,root,-)
@@ -518,10 +541,14 @@ dracut --force %{kernel_ver}.%{_arch}
 %files -n nvidia-X
 %defattr(-,root,root,-)
 %{_bindir}/nvidia-xconfig
+%{_libdir}/nvidia/libGLX_nvidia.so.%{version}
+%{_libdir}/libGLX_nvidia.so.0
 %{_libdir}/nvidia/libnvidia-fbc.so.%{version}
 %{_libdir}/libnvidia-fbc.so.1
 %{_libdir}/libnvidia-fbc.so
 %{_libdir}/xorg/**
+%config %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+%config %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
 %{_datadir}/X11/xorg.conf.d/*
 %{_mandir}/man1/nvidia-xconfig.1.gz
 
