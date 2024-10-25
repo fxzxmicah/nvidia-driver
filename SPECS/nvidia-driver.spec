@@ -10,7 +10,9 @@ URL:                http://www.nvidia.com/
 Source0:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
 Source1:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
 
-Source2:            86-nvidia-driver.preset
+Source2:            nouveau.conf
+Source3:            nvidia.conf
+Source4:            86-nvidia-driver.preset
 
 BuildRequires:      gcc
 BuildRequires:      make
@@ -271,7 +273,9 @@ mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/vi
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
 mv kernel/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
-install -Dm0644 %{SOURCE2} -t %{buildroot}%{_unitdir}-preset
+install -Dm0644 %{SOURCE2} -t %{buildroot}%{_prefix}/lib/modprobe.d
+install -Dm0644 %{SOURCE3} -t %{buildroot}%{_prefix}/lib/modprobe.d
+install -Dm0644 %{SOURCE4} -t %{buildroot}%{_unitdir}-preset
 
 # Create symbolic links
 cd %{buildroot}%{_libdir}
@@ -345,6 +349,7 @@ if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.de
     done
     rm -f %{_tmppath}/sign-file
 fi
+dracut --force %{kernel_ver}.%{_arch}
 
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
@@ -421,6 +426,7 @@ fi
 %dir /lib/firmware/nvidia/%{version}
 /lib/firmware/nvidia/%{version}/*
 /lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*
+%{_prefix}/lib/modprobe.d/*
 %config(noreplace) %ghost %{_sysconfdir}/keys/*
 
 %files -n nvidia-wayland
