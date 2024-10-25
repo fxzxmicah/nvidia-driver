@@ -1,0 +1,4 @@
+# Nvidia Presets
+enable nvidia-suspend.service
+enable nvidia-hibernate.service
+enable nvidia-resume.service

@@ -1,4 +1,5 @@
 %define kernel_ver %(rpm -q --qf "%%{VERSION}-%%{RELEASE}" kernel-devel)
+%define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
 
 Name:               nvidia-driver
 Version:            560.35.03
@@ -8,8 +9,8 @@ License:            NVIDIA
 URL:                http://www.nvidia.com/
 Source0:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
 Source1:            https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
-Source2:            nvidia-modsign-key-ABE56D9A.key
-Source3:            nvidia-modsign-crt-ABE56D9A.der
+
+Source2:            86-nvidia-driver.preset
 
 BuildRequires:      gcc
 BuildRequires:      make
@@ -19,9 +20,7 @@ BuildRequires:      systemd-rpm-macros
 Requires:           kernel = %{kernel_ver}
 Requires:           nvidia-modules = %{version}-%{release}
 
-Requires(post):     systemd
-Requires(preun):    systemd
-Requires(postun):   systemd
+Requires:           systemd
 
 ExclusiveArch:      x86_64
 
@@ -31,6 +30,12 @@ The NVIDIA Linux graphics driver.
 %package -n nvidia-modules
 Summary:            NVIDIA graphics kernel modules
 Group:              System Environment/Kernel
+
+Requires(post):     base64
+Requires(post):     libcrypto.so.3()(64bit)
+Requires(post):     libc.so.6()(64bit)
+Requires(post):     libz.so.1()(64bit)
+Requires(post):     ld-linux-x86-64.so.2()(64bit)
 
 %description -n nvidia-modules
 NVIDIA graphics kernel modules (Closed Source Version)
@@ -96,6 +101,9 @@ Summary:            NVIDIA Powerd Utilities
 
 Requires:           %{name} = %{version}-%{release}
 
+Requires:           dbus
+Requires:           systemd
+
 %description -n nvidia-powerd
 NVIDIA Powerd Utilities
 
@@ -103,12 +111,6 @@ NVIDIA Powerd Utilities
 Summary:            NVIDIA Settings Application
 
 Requires:           %{name} = %{version}-%{release}
-
-Requires:           dbus
-
-Requires(post):     systemd
-Requires(preun):    systemd
-Requires(postun):   systemd
 
 %description -n nvidia-settings
 NVIDIA Settings Application
@@ -169,11 +171,6 @@ export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
 %{make_build} modules
 
 %install
-#chmod +x %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file
-for module in kernel/*.ko; do
-    %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file sha256 %{SOURCE2} %{SOURCE3} $module
-done
-
 mkdir -p %{buildroot}/lib/firmware/nvidia/%{version}
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_mandir}/man1
@@ -197,6 +194,9 @@ mkdir -p %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video
 mkdir -p %{buildroot}%{_datadir}/applications
 mkdir -p %{buildroot}%{_prefix}/src/nvidia-%{version}
 
+install -Dm0400 /dev/null -t %{buildroot}%{_sysconfdir}/keys/modsign.key
+install -Dm0444 /dev/null -t %{buildroot}%{_sysconfdir}/keys/modsign.der
+
 mv firmware/* %{buildroot}/lib/firmware/nvidia/%{version}
 mv nvidia-bug-report.sh %{buildroot}%{_bindir}
 mv nvidia-modprobe %{buildroot}%{_bindir}
@@ -204,7 +204,7 @@ mv nvidia-modprobe.1.gz %{buildroot}%{_mandir}/man1
 mv systemd/system/* %{buildroot}%{_unitdir}
 mv systemd/system-sleep/* %{buildroot}%{_unitdir}-sleep
 mv systemd/nvidia-sleep.sh %{buildroot}%{_bindir}
-mv libglvnd_install_checker/* %{buildroot}/usr/lib/nvidia
+mv libglvnd_install_checker/* %{buildroot}%{_prefix}/lib/nvidia
 mv nvidia-smi %{buildroot}%{_bindir}
 mv nvidia-smi.1.gz %{buildroot}%{_mandir}/man1
 mv libnvidia-ml.so.%{version} %{buildroot}%{_libdir}/nvidia
@@ -271,7 +271,7 @@ mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/vi
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
 mv kernel/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
-cp -r %{SOURCE3} %{buildroot}%{_datadir}/nvidia
+install -Dm0644 %{SOURCE2} -t %{buildroot}%{_unitdir}-preset
 
 # Create symbolic links
 cd %{buildroot}%{_libdir}
@@ -335,7 +335,16 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %systemd_post nvidia-powerd.service
 
 %post -n nvidia-modules
-/sbin/depmod -a
+if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
+    chmod 400 %{_sysconfdir}/keys/modsign.key
+    chmod 444 %{_sysconfdir}/keys/modsign.der
+    echo %{sign_tool} | base64 -d > %{_tmppath}/sign-file
+    chmod +x %{_tmppath}/sign-file
+    for module in /lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*.ko; do
+        %{_tmppath}/sign-file sha256 %{_sysconfdir}/keys/modsign.key %{_sysconfdir}/keys/modsign.der $module
+    done
+    rm -f %{_tmppath}/sign-file
+fi
 
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
@@ -397,9 +406,10 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %{_unitdir}/nvidia-suspend.service
 %{_unitdir}/nvidia-hibernate.service
 %{_unitdir}/nvidia-resume.service
-%{_unitdir}-sleep/nvidia
-%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+%{_unitdir}-sleep/*
+%{_unitdir}-preset/*
+%config %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+%config %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
 %dir %{_datadir}/nvidia
 %{_datadir}/nvidia/nvidia-*
 %{_datadir}/glvnd/egl_vendor.d/*
@@ -411,8 +421,7 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %dir /lib/firmware/nvidia/%{version}
 /lib/firmware/nvidia/%{version}/*
 /lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*
-%dir %{_datadir}/nvidia
-%{_datadir}/nvidia/nvidia-modsign-*.der
+%config(noreplace) %ghost %{_sysconfdir}/keys/*
 
 %files -n nvidia-wayland
 %defattr(-,root,root,-)
@@ -433,7 +442,7 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %{_libdir}/nvidia/libOpenCL.so.*
 %{_libdir}/libOpenCL.so.1
 %{_libdir}/libOpenCL.so
-%{_sysconfdir}/OpenCL/vendors/nvidia.icd
+%config %{_sysconfdir}/OpenCL/vendors/nvidia.icd
 
 %files -n nvidia-cuda
 %defattr(-,root,root,-)
@@ -485,7 +494,7 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %defattr(-,root,root,-)
 %{_bindir}/nvidia-powerd
 %{_unitdir}/nvidia-powerd.service
-%{_datadir}/dbus-1/system.d/nvidia-dbus.conf
+%{_datadir}/dbus-1/system.d/*
 
 %files -n nvidia-settings
 %defattr(-,root,root,-)
@@ -496,8 +505,8 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %{_libdir}/libnvidia-gtk3.so.%{version}
 %{_libdir}/nvidia/libnvidia-wayland-client.so.%{version}
 %{_libdir}/libnvidia-wayland-client.so.%{version}
-%{_datadir}/icons/hicolor/128x128/apps/nvidia-settings.png
-%{_datadir}/applications/nvidia-settings.desktop
+%{_datadir}/icons/hicolor/**
+%{_datadir}/applications/*
 %{_mandir}/man1/nvidia-settings.1.gz
 
 %files -n nvidia-X
