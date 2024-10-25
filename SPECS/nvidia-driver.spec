@@ -35,9 +35,9 @@ Summary:                NVIDIA graphics kernel modules
 Group:                  System Environment/Kernel
 
 Requires:               kernel(x86-64) = %{kernel_ver}
+Requires:               kernel-core(x86-64) = %{kernel_ver}
 
 Requires(post):         /usr/bin/base64
-Requires(post):         /usr/bin/tee
 Requires(post):         libcrypto.so.3()(64bit)
 Requires(post):         libc.so.6()(64bit)
 Requires(post):         libz.so.1()(64bit)
@@ -52,6 +52,9 @@ NVIDIA graphics kernel modules (Closed Source Version)
 Summary:                NVIDIA EGL libraries
 
 Requires:               %{name} = %{version}-%{release}
+
+Requires(post):         alternatives
+Requires(preun):        alternatives
 
 %description -n nvidia-egl
 NVIDIA EGL libraries
@@ -138,7 +141,8 @@ Requires:               %{name} = %{version}-%{release}
 
 Requires:               xorg-x11-server-Xorg
 
-Requires(post):         jq
+Requires(post):         alternatives
+Requires(preun):        alternatives
 
 %description -n nvidia-X
 NVIDIA X drivers
@@ -201,9 +205,8 @@ mkdir -p %{buildroot}%{_prefix}/lib/nvidia
 mkdir -p %{buildroot}%{_libdir}/nvidia
 mkdir -p %{buildroot}%{_sysconfdir}/OpenCL/vendors
 mkdir -p %{buildroot}%{_datadir}/dbus-1/system.d
-mkdir -p %{buildroot}%{_sysconfdir}/vulkan/icd.d
-mkdir -p %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d
 mkdir -p %{buildroot}%{_datadir}/nvidia
+mkdir -p %{buildroot}%{_datadir}/nvidia/vulkan
 mkdir -p %{buildroot}%{_datadir}/glvnd/egl_vendor.d
 mkdir -p %{buildroot}%{_libdir}/xorg/modules/extensions
 mkdir -p %{buildroot}%{_datadir}/X11/xorg.conf.d
@@ -217,6 +220,8 @@ mkdir -p %{buildroot}%{_prefix}/src/nvidia-%{version}
 
 install -Dm0400 /dev/null -t %{buildroot}%{_sysconfdir}/keys/modsign.key
 install -Dm0444 /dev/null -t %{buildroot}%{_sysconfdir}/keys/modsign.der
+install -Dm0644 /dev/null -t %{buildroot}%{_datadir}/vulkan/icd.d/nvidia_icd.json
+install -Dm0644 /dev/null -t %{buildroot}%{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 
 mv firmware/* %{buildroot}/lib/firmware/nvidia/%{version}
 mv nvidia-bug-report.sh %{buildroot}%{_bindir}
@@ -248,8 +253,8 @@ mv nvidia-powerd %{buildroot}%{_bindir}
 mv nvidia-dbus.conf %{buildroot}%{_datadir}/dbus-1/system.d
 mv libnvidia-glcore.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-tls.so.%{version} %{buildroot}%{_libdir}/nvidia
-mv nvidia_icd.json %{buildroot}%{_sysconfdir}/vulkan/icd.d
-mv nvidia_layers.json %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d
+mv nvidia_icd.json %{buildroot}%{_datadir}/nvidia/vulkan
+mv nvidia_layers.json %{buildroot}%{_datadir}/nvidia/vulkan
 mv nvidia-application-profiles-%{version}-* %{buildroot}%{_datadir}/nvidia
 mv libGLX_nvidia.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-glsi.so.%{version} %{buildroot}%{_libdir}/nvidia
@@ -296,8 +301,8 @@ install -Dm0644 %{SOURCE2} -t %{buildroot}%{_prefix}/lib/modprobe.d
 install -Dm0644 %{SOURCE3} -t %{buildroot}%{_prefix}/lib/modprobe.d
 install -Dm0644 %{SOURCE4} -t %{buildroot}%{_unitdir}-preset
 
-jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | tee %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | tee %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_icd.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
+jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_layers.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
 
 # Create symbolic links
 cd %{buildroot}%{_libdir}
@@ -357,9 +362,6 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 %post
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
-%post -n nvidia-powerd
-%systemd_post nvidia-powerd.service
-
 %post -n nvidia-modules
 if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
     chmod 400 %{_sysconfdir}/keys/modsign.key
@@ -371,10 +373,16 @@ if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.de
     done
     rm -f %{_tmppath}/sign-file
 fi
+/sbin/depmod -a %{kernel_ver}.%{_arch}
+
+%post -n nvidia-egl
+update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json 25 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
+
+%post -n nvidia-powerd
+%systemd_post nvidia-powerd.service
 
 %post -n nvidia-X
-jq .ICD.library_path=\"libGLX_nvidia.so.0\" %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | tee %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-jq .layers[0].library_path=\"libGLX_nvidia.so.0\" %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | tee %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json 50 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
 %posttrans -n nvidia-modules
 kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vmlinuz*
@@ -382,17 +390,25 @@ kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vm
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
+%preun -n nvidia-egl
+update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
+update-alternatives --remove nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
+
 %preun -n nvidia-powerd
 %systemd_preun nvidia-powerd.service
+
+%preun -n nvidia-X
+update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json
+update-alternatives --remove nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
 %postun
 %systemd_postun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
+%postun -n nvidia-modules
+/sbin/depmod -a %{kernel_ver}.%{_arch}
+
 %postun -n nvidia-powerd
 %systemd_postun nvidia-powerd.service
-
-%postun -n nvidia-modules
-/sbin/depmod -a
 
 %files
 %defattr(-,root,root,-)
@@ -454,9 +470,11 @@ kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vm
 %{_libdir}/libnvidia-eglcore.so.%{version}
 %{_libdir}/nvidia/libEGL_nvidia.so.%{version}
 %{_libdir}/libEGL_nvidia.so.0
-%config %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-%config %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+%ghost %{_datadir}/vulkan/icd.d/nvidia_icd.json
+%ghost %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 %{_datadir}/glvnd/egl_vendor.d/*
+%{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
+%{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
 
 %files -n nvidia-wayland
 %defattr(-,root,root,-)
@@ -553,9 +571,11 @@ kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vm
 %{_libdir}/libnvidia-fbc.so.1
 %{_libdir}/libnvidia-fbc.so
 %{_libdir}/xorg/**
-%config %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-%config %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+%ghost %{_datadir}/vulkan/icd.d/nvidia_icd.json
+%ghost %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 %{_datadir}/X11/xorg.conf.d/*
+%{_datadir}/nvidia/vulkan/nvidia_icd.json
+%{_datadir}/nvidia/vulkan/nvidia_layers.json
 %{_mandir}/man1/nvidia-xconfig.1.gz
 
 %files -n nvidia-ngx
