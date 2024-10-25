@@ -203,6 +203,7 @@ mkdir -p %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_unitdir}-sleep
 mkdir -p %{buildroot}%{_prefix}/lib/nvidia
 mkdir -p %{buildroot}%{_libdir}/nvidia
+mkdir -p %{buildroot}%{_libdir}/gbm
 mkdir -p %{buildroot}%{_sysconfdir}/OpenCL/vendors
 mkdir -p %{buildroot}%{_datadir}/dbus-1/system.d
 mkdir -p %{buildroot}%{_datadir}/nvidia
@@ -340,6 +341,7 @@ ln -sr libnvidia-cfg.so.1 libnvidia-cfg.so
 ln -sr vdpau/libvdpau_nvidia.so.%{version} vdpau/libvdpau_nvidia.so.1
 ln -sr vdpau/libvdpau_nvidia.so.1 libvdpau_nvidia.so
 ln -sr nvidia/libnvidia-allocator.so.%{version} libnvidia-allocator.so.1
+ln -sr libnvidia-allocator.so.1 gbm/nvidia-drm_gbm.so
 ln -sr libnvidia-allocator.so.1 libnvidia-allocator.so
 ln -sr nvidia/libnvidia-rtcore.so.%{version} libnvidia-rtcore.so.%{version}
 ln -sr nvidia/libnvoptix.so.%{version} libnvoptix.so.1
@@ -484,6 +486,8 @@ update-alternatives --remove nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvid
 
 %files -n nvidia-gbm
 %defattr(-,root,root,-)
+%dir %{_libdir}/gbm
+%{_libdir}/gbm/*
 %{_libdir}/nvidia/libnvidia-egl-gbm.so.*
 %{_libdir}/libnvidia-egl-gbm.so.1
 %{_datadir}/egl/egl_external_platform.d/15_nvidia_gbm.json
