@@ -20,7 +20,6 @@ BuildRequires:      make
 BuildRequires:      kernel-devel
 BuildRequires:      systemd-rpm-macros
 BuildRequires:      jq
-BuildRequires:      /usr/bin/sponge
 
 Requires:           kernel(x86-64) = %{kernel_ver}
 Requires:           nvidia-modules = %{version}-%{release}
@@ -37,6 +36,7 @@ Summary:            NVIDIA graphics kernel modules
 Group:              System Environment/Kernel
 
 Requires(post):     /usr/bin/base64
+Requires(post):     /usr/bin/tee
 Requires(post):     libcrypto.so.3()(64bit)
 Requires(post):     libc.so.6()(64bit)
 Requires(post):     libz.so.1()(64bit)
@@ -292,8 +292,8 @@ install -Dm0644 %{SOURCE2} -t %{buildroot}%{_prefix}/lib/modprobe.d
 install -Dm0644 %{SOURCE3} -t %{buildroot}%{_prefix}/lib/modprobe.d
 install -Dm0644 %{SOURCE4} -t %{buildroot}%{_unitdir}-preset
 
-jq .ICD.library_path = "libEGL_nvidia.so.0" %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | sponge %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-jq .layers[0].library_path = "libEGL_nvidia.so.0" %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | sponge %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | tee %{buildroot}%{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | tee %{buildroot}%{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
 
 # Create symbolic links
 cd %{buildroot}%{_libdir}
@@ -370,8 +370,8 @@ fi
 dracut --force %{kernel_ver}.%{_arch}
 
 %post -n nvidia-X
-jq .ICD.library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json > %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
-jq .layers[0].library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json > %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
+jq .ICD.library_path=\"libGLX_nvidia.so.0\" %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json | tee %{_sysconfdir}/vulkan/icd.d/nvidia_icd.json
+jq .layers[0].library_path=\"libGLX_nvidia.so.0\" %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json | tee %{_sysconfdir}/vulkan/implicit_layer.d/nvidia_layers.json
 
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
@@ -395,9 +395,9 @@ jq .layers[0].library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/implicit
 %doc NVIDIA_Changelog
 %doc html
 %doc supported-gpus
-%{_bindir}/nvidia-modprobe
+%attr(4755,root,root) %{_bindir}/nvidia-modprobe
 %{_bindir}/nvidia-sleep.sh
-%{_bindir}/nvidia-smi
+%attr(4755,root,root) %{_bindir}/nvidia-smi
 %dir %{_libdir}/nvidia
 %{_libdir}/nvidia/libnvidia-ml.so.%{version}
 %{_libdir}/libnvidia-ml.so.1
@@ -475,8 +475,8 @@ jq .layers[0].library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/implicit
 
 %files -n nvidia-cuda
 %defattr(-,root,root,-)
-%{_bindir}/nvidia-cuda-mps-control
-%{_bindir}/nvidia-cuda-mps-server
+%attr(4755,root,root) %{_bindir}/nvidia-cuda-mps-control
+%attr(4755,root,root) %{_bindir}/nvidia-cuda-mps-server
 %{_libdir}/nvidia/libcuda.so.%{version}
 %{_libdir}/libcuda.so.1
 %{_libdir}/libcuda.so
@@ -540,7 +540,7 @@ jq .layers[0].library_path = "libGLX_nvidia.so.0" %{_sysconfdir}/vulkan/implicit
 
 %files -n nvidia-X
 %defattr(-,root,root,-)
-%{_bindir}/nvidia-xconfig
+%attr(4755,root,root) %{_bindir}/nvidia-xconfig
 %{_libdir}/nvidia/libGLX_nvidia.so.%{version}
 %{_libdir}/libGLX_nvidia.so.0
 %{_libdir}/nvidia/libnvidia-fbc.so.%{version}
