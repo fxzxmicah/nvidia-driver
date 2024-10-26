@@ -393,15 +393,17 @@ kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vm
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
 %preun -n nvidia-egl
-update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json || true
-update-alternatives --remove nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json || true
+if [ $1 -eq 0 ]; then
+    update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json || true
+fi
 
 %preun -n nvidia-powerd
 %systemd_preun nvidia-powerd.service
 
 %preun -n nvidia-X
-update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json || true
-update-alternatives --remove nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json || true
+if [ $1 -eq 0 ]; then
+    update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json || true
+fi
 
 %postun
 %systemd_postun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
