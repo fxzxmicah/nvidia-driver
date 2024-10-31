@@ -3,7 +3,7 @@
 %define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
 
 Name:                   nvidia-driver
-Version:                560.35.03
+Version:                550.127.05
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
@@ -394,7 +394,7 @@ kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vm
 
 %preun -n nvidia-egl
 if [ $1 -eq 0 ]; then
-    update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json || true
+    update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json || :
 fi
 
 %preun -n nvidia-powerd
@@ -402,7 +402,7 @@ fi
 
 %preun -n nvidia-X
 if [ $1 -eq 0 ]; then
-    update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json || true
+    update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json || :
 fi
 
 %postun
