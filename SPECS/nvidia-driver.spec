@@ -366,6 +366,7 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 
 %post -n nvidia-modules
 if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
+    chown root:root %{_sysconfdir}/keys/modsign.*
     chmod 400 %{_sysconfdir}/keys/modsign.key
     chmod 444 %{_sysconfdir}/keys/modsign.der
     echo %{sign_tool} | base64 -d > %{_tmppath}/sign-file
