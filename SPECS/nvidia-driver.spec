@@ -3,7 +3,7 @@
 %define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
 
 Name:                   nvidia-driver
-Version:                550.127.05
+Version:                550.135
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
