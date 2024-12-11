@@ -2,14 +2,18 @@
 
 %define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
 
+%if 0%{?__isa_bits} == 64
+%global elf_bits (64bit)
+%endif
+
 Name:                   nvidia-driver
 Version:                550.135
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
 URL:                    http://www.nvidia.com/
-Source0:                https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run
-Source1:                https://download.nvidia.com/XFree86/Linux-x86_64/%{version}/NVIDIA-Linux-x86_64-%{version}-no-compat32.run.sha256sum
+Source0:                https://download.nvidia.com/XFree86/Linux-%{_arch}/%{version}/NVIDIA-Linux-%{_arch}-%{version}-no-compat32.run
+Source1:                https://download.nvidia.com/XFree86/Linux-%{_arch}/%{version}/NVIDIA-Linux-%{_arch}-%{version}-no-compat32.run.sha256sum
 
 Source2:                nouveau.conf
 Source3:                nvidia.conf
@@ -21,7 +25,7 @@ BuildRequires:          kernel-devel
 BuildRequires:          systemd-rpm-macros
 BuildRequires:          jq
 
-Requires:               nvidia-modules = %{version}-%{release}
+Requires:               nvidia-modules%{?_isa} = %{version}-%{release}
 
 Requires:               systemd
 
@@ -34,16 +38,16 @@ The NVIDIA Linux graphics driver.
 Summary:                NVIDIA graphics kernel modules
 Group:                  System Environment/Kernel
 
-Requires:               kernel(x86-64) = %{kernel_ver}
-Requires:               kernel-core(x86-64) = %{kernel_ver}
+Requires:               kernel%{?_isa} = %{kernel_ver}
+Requires:               kernel-core%{?_isa} = %{kernel_ver}
 
-Requires(post):         /usr/bin/base64
-Requires(post):         libcrypto.so.3()(64bit)
-Requires(post):         libc.so.6()(64bit)
-Requires(post):         libz.so.1()(64bit)
-Requires(post):         ld-linux-x86-64.so.2()(64bit)
+Requires(post):         %{_bindir}/base64
+Requires(post):         libcrypto.so.3()%{?elf_bits}
+Requires(post):         libc.so.6()%{?elf_bits}
+Requires(post):         libz.so.1()%{?elf_bits}
+Requires(post):         ld-linux-x86-64.so.2()%{?elf_bits}
 
-Requires(posttrans):    /usr/bin/kernel-install
+Requires(posttrans):    %{_bindir}/kernel-install
 
 %description -n nvidia-modules
 NVIDIA graphics kernel modules (Closed Source Version)
@@ -51,7 +55,7 @@ NVIDIA graphics kernel modules (Closed Source Version)
 %package -n nvidia-egl
 Summary:                NVIDIA EGL libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 Requires(post):         alternatives
 Requires(preun):        alternatives
@@ -62,7 +66,7 @@ NVIDIA EGL libraries
 %package -n nvidia-wayland
 Summary:                NVIDIA Wayland libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-wayland
 NVIDIA Wayland libraries
@@ -70,7 +74,7 @@ NVIDIA Wayland libraries
 %package -n nvidia-gbm
 Summary:                NVIDIA GBM libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-gbm
 NVIDIA GBM libraries
@@ -78,7 +82,7 @@ NVIDIA GBM libraries
 %package -n nvidia-opencl
 Summary:                NVIDIA OpenCL libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-opencl
 NVIDIA OpenCL libraries
@@ -86,7 +90,7 @@ NVIDIA OpenCL libraries
 %package -n nvidia-cuda
 Summary:                NVIDIA CUDA libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-cuda
 NVIDIA CUDA libraries
@@ -94,7 +98,7 @@ NVIDIA CUDA libraries
 %package -n nvidia-vision
 Summary:                NVIDIA Vision libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-vision
 NVIDIA Vision libraries
@@ -102,7 +106,7 @@ NVIDIA Vision libraries
 %package -n nvidia-vdpau
 Summary:                NVIDIA VDPAU libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-vdpau
 NVIDIA VDPAU libraries
@@ -110,7 +114,7 @@ NVIDIA VDPAU libraries
 %package -n nvidia-persistenced
 Summary:                NVIDIA Persistenced Utilities
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-persistenced
 NVIDIA Persistenced Utilities
@@ -118,7 +122,7 @@ NVIDIA Persistenced Utilities
 %package -n nvidia-powerd
 Summary:                NVIDIA Powerd Utilities
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 Requires:               dbus
 Requires:               systemd
@@ -129,7 +133,7 @@ NVIDIA Powerd Utilities
 %package -n nvidia-settings
 Summary:                NVIDIA Settings Application
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-settings
 NVIDIA Settings Application
@@ -137,7 +141,7 @@ NVIDIA Settings Application
 %package -n nvidia-X
 Summary:                NVIDIA X drivers
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 Requires:               xorg-x11-server-Xorg
 
@@ -150,7 +154,7 @@ NVIDIA X drivers
 %package -n nvidia-ngx
 Summary:                NVIDIA NGX Utilities
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
@@ -158,7 +162,7 @@ NVIDIA NGX Utilities
 %package -n nvidia-security
 Summary:                NVIDIA Security Libraries
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-security
 NVIDIA Security Libraries
@@ -166,7 +170,7 @@ NVIDIA Security Libraries
 %package -n nvidia-utils
 Summary:                NVIDIA Utilities
 
-Requires:               %{name} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-utils
 NVIDIA Utilities
