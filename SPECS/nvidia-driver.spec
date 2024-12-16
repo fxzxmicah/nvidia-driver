@@ -7,7 +7,7 @@
 %endif
 
 Name:                   nvidia-driver
-Version:                550.135
+Version:                565.77
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
@@ -364,6 +364,9 @@ ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.
 cd %{buildroot}%{_prefix}/src/nvidia-%{version}
 ln -srf nvidia-modeset/nv-modeset-kernel.o_binary nvidia-modeset/nv-modeset-kernel.o
 ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
+
+%check
+ls -l %{_builddir}/* > %{_topdir}/leaves.list
 
 %post
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service

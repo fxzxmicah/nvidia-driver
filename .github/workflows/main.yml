@@ -36,8 +36,8 @@ jobs:
 
     - name: Check
       run: |
-        ls -l BUILD
         cat release.log
+        cat leaves.list
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
