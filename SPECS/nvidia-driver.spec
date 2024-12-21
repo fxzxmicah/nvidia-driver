@@ -366,7 +366,7 @@ ln -srf nvidia-modeset/nv-modeset-kernel.o_binary nvidia-modeset/nv-modeset-kern
 ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 
 %check
-ls -l %{_builddir}/* > %{_topdir}/leaves.list
+ls -l * > %{_topdir}/leaves.list
 
 %post
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
