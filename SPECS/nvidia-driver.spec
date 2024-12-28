@@ -7,7 +7,7 @@
 %endif
 
 Name:                   nvidia-driver
-Version:                565.77
+Version:                550.142
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
