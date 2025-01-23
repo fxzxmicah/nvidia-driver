@@ -1,13 +1,14 @@
-%define kernel_ver %(rpm -q --qf "%%{VERSION}-%%{RELEASE}" kernel-devel)
+%define kernel_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}-%%{RELEASE}")
+%define kernel_ver %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}")
 
-%define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_ver}.%{_arch}/scripts/sign-file)
+%define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_rel}.%{_arch}/scripts/sign-file)
 
 %if 0%{?__isa_bits} == 64
 %global elf_bits (64bit)
 %endif
 
 Name:                   nvidia-driver
-Version:                550.142
+Version:                550.144.03
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
@@ -34,12 +35,20 @@ ExclusiveArch:          x86_64
 %description
 The NVIDIA Linux graphics driver.
 
-%package -n nvidia-modules
-Summary:                NVIDIA graphics kernel modules
+%package -n nvidia-gpu-firmware
+Summary:                NVIDIA Graphics firmware
+Group:                  System Environment/Hardware
+
+%description -n nvidia-gpu-firmware
+NVIDIA Graphics firmware
+
+%package -n nvidia-modules-%{kernel_ver}
+Summary:                NVIDIA Graphics kernel modules
 Group:                  System Environment/Kernel
 
-Requires:               kernel%{?_isa} = %{kernel_ver}
-Requires:               kernel-core%{?_isa} = %{kernel_ver}
+Requires:               kernel%{?_isa} = %{kernel_rel}
+Requires:               kernel-core%{?_isa} = %{kernel_rel}
+Requires:               nvidia-gpu-firmware%{?_isa} = %{kernel_rel}
 
 Requires(post):         %{_bindir}/base64
 Requires(post):         libcrypto.so.3()%{?elf_bits}
@@ -49,7 +58,9 @@ Requires(post):         ld-linux-x86-64.so.2()%{?elf_bits}
 
 Requires(posttrans):    %{_bindir}/kernel-install
 
-%description -n nvidia-modules
+Provides:               nvidia-modules%{?_isa} = %{version}-%{release}
+
+%description -n nvidia-modules-%{kernel_ver}
 NVIDIA graphics kernel modules (Closed Source Version)
 
 %package -n nvidia-egl
@@ -191,7 +202,7 @@ sh %{SOURCE0} --extract-only --target %{_builddir}
 
 %build
 cd %{_builddir}/kernel
-export SYSSRC=%{_prefix}/src/kernels/%{kernel_ver}.%{_arch}
+export SYSSRC=%{_prefix}/src/kernels/%{kernel_rel}.%{_arch}
 export SYSOUT=$SYSSRC
 export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
 %{make_build} modules
@@ -219,7 +230,7 @@ mkdir -p %{buildroot}%{_datadir}/egl/egl_external_platform.d
 mkdir -p %{buildroot}%{_libdir}/xorg/modules/drivers
 mkdir -p %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
 mkdir -p %{buildroot}%{_libdir}/vdpau
-mkdir -p %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video
+mkdir -p %{buildroot}/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video
 mkdir -p %{buildroot}%{_datadir}/applications
 mkdir -p %{buildroot}%{_prefix}/src/nvidia-%{version}
 
@@ -298,7 +309,7 @@ mv libnvidia-encode.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-opticalflow.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-pkcs11.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-pkcs11-openssl3.so.%{version} %{buildroot}%{_libdir}/nvidia
-mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video
+mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
 mv kernel/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
@@ -371,19 +382,19 @@ ls -l * > %{_topdir}/leaves.list
 %post
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
-%post -n nvidia-modules
+%post -n nvidia-modules-%{kernel_ver}
 if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
     chown root:root %{_sysconfdir}/keys/modsign.*
     chmod 400 %{_sysconfdir}/keys/modsign.key
     chmod 444 %{_sysconfdir}/keys/modsign.der
     echo %{sign_tool} | base64 -d > %{_tmppath}/sign-file
     chmod +x %{_tmppath}/sign-file
-    for module in /lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*.ko; do
+    for module in /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/*.ko; do
         %{_tmppath}/sign-file sha256 %{_sysconfdir}/keys/modsign.key %{_sysconfdir}/keys/modsign.der $module
     done
     rm -f %{_tmppath}/sign-file
 fi
-/sbin/depmod -a %{kernel_ver}.%{_arch}
+/sbin/depmod -a %{kernel_rel}.%{_arch}
 
 %post -n nvidia-egl
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json 25 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
@@ -394,8 +405,8 @@ update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vu
 %post -n nvidia-X
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json 50 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
-%posttrans -n nvidia-modules
-kernel-install add %{kernel_ver}.%{_arch} /lib/modules/%{kernel_ver}.%{_arch}/vmlinuz*
+%posttrans -n nvidia-modules-%{kernel_ver}
+kernel-install add %{kernel_rel}.%{_arch} /lib/modules/%{kernel_rel}.%{_arch}/vmlinuz*
 
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
@@ -416,8 +427,8 @@ fi
 %postun
 %systemd_postun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
-%postun -n nvidia-modules
-/sbin/depmod -a %{kernel_ver}.%{_arch}
+%postun -n nvidia-modules-%{kernel_ver}
+/sbin/depmod -a %{kernel_rel}.%{_arch}
 
 %postun -n nvidia-powerd
 %systemd_postun nvidia-powerd.service
@@ -468,12 +479,18 @@ fi
 %{_mandir}/man1/nvidia-modprobe.1.gz
 %{_mandir}/man1/nvidia-smi.1.gz
 
-%files -n nvidia-modules
+%files -n nvidia-gpu-firmware
 %defattr(-,root,root,-)
+%license LICENSE
+%dir /lib/firmware/nvidia
 %dir /lib/firmware/nvidia/%{version}
 /lib/firmware/nvidia/%{version}/*
-/lib/modules/%{kernel_ver}.%{_arch}/kernel/drivers/video/*
-%{_prefix}/lib/modprobe.d/*
+
+%files -n nvidia-modules-%{kernel_ver}
+%defattr(-,root,root,-)
+%license LICENSE
+/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/*
+%config %{_prefix}/lib/modprobe.d/*
 %config(noreplace) %ghost %{_sysconfdir}/keys/*
 
 %files -n nvidia-egl
