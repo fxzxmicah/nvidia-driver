@@ -42,13 +42,26 @@ Group:                  System Environment/Hardware
 %description -n nvidia-gpu-firmware
 NVIDIA Graphics firmware
 
+%package -n nvidia-common
+Summary:                NVIDIA Graphics common files
+Group:                  System Environment/Kernel
+
+Requires:               nvidia-modules%{?_isa} = %{version}-%{release}
+
+Requires:               module-init-tools
+
+%%description -n nvidia-common
+NVIDIA Graphics common files
+
 %package -n nvidia-modules-%{kernel_ver}
 Summary:                NVIDIA Graphics kernel modules
 Group:                  System Environment/Kernel
 
 Requires:               kernel%{?_isa} = %{kernel_rel}
 Requires:               kernel-core%{?_isa} = %{kernel_rel}
-Requires:               nvidia-gpu-firmware%{?_isa} = %{kernel_rel}
+
+Requires:               nvidia-gpu-firmware%{?_isa} = %{version}-%{release}
+Requires:               nvidia-common%{?_isa} = %{version}-%{release}
 
 Requires(post):         %{_bindir}/base64
 Requires(post):         libcrypto.so.3()%{?elf_bits}
@@ -352,7 +365,6 @@ ln -sr nvidia/libnvidia-gtk2.so.%{version} libnvidia-gtk2.so.%{version}
 ln -sr nvidia/libnvidia-gtk3.so.%{version} libnvidia-gtk3.so.%{version}
 ln -sr nvidia/libnvidia-wayland-client.so.%{version} libnvidia-wayland-client.so.%{version}
 ln -sr nvidia/libnvidia-cfg.so.%{version} libnvidia-cfg.so.1
-ln -sr libnvidia-cfg.so.1 libnvidia-cfg.so
 ln -sr vdpau/libvdpau_nvidia.so.%{version} vdpau/libvdpau_nvidia.so.1
 ln -sr vdpau/libvdpau_nvidia.so.1 libvdpau_nvidia.so
 ln -sr nvidia/libnvidia-allocator.so.%{version} libnvidia-allocator.so.1
@@ -463,9 +475,6 @@ fi
 %{_libdir}/libGLESv2_nvidia.so.2
 %{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
 %{_libdir}/libGLESv1_CM_nvidia.so.1
-%{_libdir}/nvidia/libnvidia-cfg.so.%{version}
-%{_libdir}/libnvidia-cfg.so.1
-%{_libdir}/libnvidia-cfg.so
 %{_libdir}/nvidia/libnvidia-allocator.so.%{version}
 %{_libdir}/libnvidia-allocator.so.1
 %{_libdir}/libnvidia-allocator.so
@@ -486,12 +495,15 @@ fi
 %dir /lib/firmware/nvidia/%{version}
 /lib/firmware/nvidia/%{version}/*
 
+%files -n nvidia-common
+%config %{_prefix}/lib/modprobe.d/*
+%dir %ghost %{_sysconfdir}/keys
+%config(noreplace) %ghost %{_sysconfdir}/keys/*
+
 %files -n nvidia-modules-%{kernel_ver}
 %defattr(-,root,root,-)
 %license LICENSE
 /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/*
-%config %{_prefix}/lib/modprobe.d/*
-%config(noreplace) %ghost %{_sysconfdir}/keys/*
 
 %files -n nvidia-egl
 %defattr(-,root,root,-)
@@ -571,6 +583,8 @@ fi
 %files -n nvidia-persistenced
 %defattr(-,root,root,-)
 %doc nvidia-persistenced-init.tar.bz2
+%{_libdir}/nvidia/libnvidia-cfg.so.%{version}
+%{_libdir}/libnvidia-cfg.so.1
 %{_bindir}/nvidia-persistenced
 %{_mandir}/man1/nvidia-persistenced.1.gz
 
