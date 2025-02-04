@@ -475,9 +475,6 @@ fi
 %{_libdir}/libGLESv2_nvidia.so.2
 %{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
 %{_libdir}/libGLESv1_CM_nvidia.so.1
-%{_libdir}/nvidia/libnvidia-allocator.so.%{version}
-%{_libdir}/libnvidia-allocator.so.1
-%{_libdir}/libnvidia-allocator.so
 %{_unitdir}/nvidia-suspend.service
 %{_unitdir}/nvidia-hibernate.service
 %{_unitdir}/nvidia-resume.service
@@ -527,6 +524,9 @@ fi
 %defattr(-,root,root,-)
 %dir %{_libdir}/gbm
 %{_libdir}/gbm/*
+%{_libdir}/nvidia/libnvidia-allocator.so.%{version}
+%{_libdir}/libnvidia-allocator.so.1
+%{_libdir}/libnvidia-allocator.so
 %{_libdir}/nvidia/libnvidia-egl-gbm.so.*
 %{_libdir}/libnvidia-egl-gbm.so.1
 %{_datadir}/egl/egl_external_platform.d/15_nvidia_gbm.json
