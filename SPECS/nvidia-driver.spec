@@ -90,7 +90,7 @@ NVIDIA EGL libraries
 %package -n nvidia-wayland
 Summary:                NVIDIA Wayland libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-wayland
 NVIDIA Wayland libraries
@@ -98,7 +98,7 @@ NVIDIA Wayland libraries
 %package -n nvidia-gbm
 Summary:                NVIDIA GBM libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-gbm
 NVIDIA GBM libraries
