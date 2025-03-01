@@ -8,7 +8,7 @@
 %endif
 
 Name:                   nvidia-driver
-Version:                550.144.03
+Version:                570.124.04
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
@@ -60,8 +60,8 @@ Group:                  System Environment/Kernel
 Requires:               kernel%{?_isa} = %{kernel_rel}
 Requires:               kernel-core%{?_isa} = %{kernel_rel}
 
-Requires:               nvidia-gpu-firmware%{?_isa} = %{version}-%{release}
-Requires:               nvidia-common%{?_isa} = %{version}-%{release}
+Requires:               nvidia-gpu-firmware%{?_isa}
+Requires:               nvidia-common%{?_isa}
 
 Requires(post):         %{_bindir}/base64
 Requires(post):         libcrypto.so.3()%{?elf_bits}
@@ -69,7 +69,7 @@ Requires(post):         libc.so.6()%{?elf_bits}
 Requires(post):         libz.so.1()%{?elf_bits}
 Requires(post):         ld-linux-x86-64.so.2()%{?elf_bits}
 
-Requires(posttrans):    %{_bindir}/kernel-install
+Requires(posttrans):    dracut%{?_isa}
 
 Provides:               nvidia-modules%{?_isa} = %{version}-%{release}
 
@@ -80,6 +80,10 @@ NVIDIA graphics kernel modules (Closed Source Version)
 Summary:                NVIDIA EGL libraries
 
 Requires:               %{name}%{?_isa} = %{version}-%{release}
+
+Requires:               %{_datadir}/glvnd/egl_vendor.d
+Requires:               %{_datadir}/vulkan/icd.d
+Requires:               %{_datadir}/vulkan/implicit_layer.d
 
 Requires(post):         alternatives
 Requires(preun):        alternatives
@@ -92,6 +96,8 @@ Summary:                NVIDIA Wayland libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
 
+Requires:               %{_datadir}/egl/egl_external_platform.d
+
 %description -n nvidia-wayland
 NVIDIA Wayland libraries
 
@@ -99,6 +105,8 @@ NVIDIA Wayland libraries
 Summary:                NVIDIA GBM libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
+
+Requires:               %{_datadir}/egl/egl_external_platform.d
 
 %description -n nvidia-gbm
 NVIDIA GBM libraries
@@ -392,7 +400,7 @@ ln -srf nvidia/nv-kernel.o_binary nvidia/nv-kernel.o
 ls -l * > %{_topdir}/leaves.list
 
 %post
-%systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
+%systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
 
 %post -n nvidia-modules-%{kernel_ver}
 if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
@@ -418,10 +426,10 @@ update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vu
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json 50 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
 %posttrans -n nvidia-modules-%{kernel_ver}
-kernel-install add %{kernel_rel}.%{_arch} /lib/modules/%{kernel_rel}.%{_arch}/vmlinuz*
+dracut -f --kver "%{kernel_rel}.%{_arch}" || exit $?
 
 %preun
-%systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
+%systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
 
 %preun -n nvidia-egl
 if [ $1 -eq 0 ]; then
@@ -437,7 +445,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 %postun
-%systemd_postun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
+%systemd_postun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
 
 %postun -n nvidia-modules-%{kernel_ver}
 /sbin/depmod -a %{kernel_rel}.%{_arch}
@@ -478,6 +486,7 @@ fi
 %{_unitdir}/nvidia-suspend.service
 %{_unitdir}/nvidia-hibernate.service
 %{_unitdir}/nvidia-resume.service
+%{_unitdir}/nvidia-suspend-then-hibernate.service
 %{_unitdir}-sleep/*
 %{_unitdir}-preset/*
 %dir %{_datadir}/nvidia
