@@ -1,14 +1,14 @@
 %define kernel_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}-%%{RELEASE}")
 %define kernel_ver %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}")
 
-%define sign_tool %(base64 -w 0 %{_prefix}/src/kernels/%{kernel_rel}.%{_arch}/scripts/sign-file)
+%define sign_tool %(gzip -c %{_prefix}/src/kernels/%{kernel_rel}.%{_arch}/scripts/sign-file | base64)
 
 %if 0%{?__isa_bits} == 64
 %global elf_bits (64bit)
 %endif
 
 Name:                   nvidia-driver
-Version:                570.124.04
+Version:                570.133.07
 Release:                1%{?dist}
 Summary:                NVIDIA binary driver for Linux
 License:                NVIDIA
@@ -20,6 +20,7 @@ Source2:                nouveau.conf
 Source3:                nvidia.conf
 Source4:                86-nvidia-driver.preset
 
+BuildRequires:          gzip
 BuildRequires:          gcc
 BuildRequires:          make
 BuildRequires:          kernel-devel
@@ -39,6 +40,11 @@ The NVIDIA Linux graphics driver.
 Summary:                NVIDIA Graphics firmware
 Group:                  System Environment/Hardware
 
+Epoch:                  1
+BuildArch:              noarch
+
+Provides:               nvidia-gpu-firmware = 1.0.0-%{release}
+
 %description -n nvidia-gpu-firmware
 NVIDIA Graphics firmware
 
@@ -46,9 +52,13 @@ NVIDIA Graphics firmware
 Summary:                NVIDIA Graphics common files
 Group:                  System Environment/Kernel
 
-Requires:               nvidia-modules%{?_isa} = %{version}-%{release}
+BuildArch:              noarch
+
+Requires:               nvidia-modules = %{version}-%{release}
 
 Requires:               module-init-tools
+
+Provides:               nvidia-common = 1.0.0-%{release}
 
 %description -n nvidia-common
 NVIDIA Graphics common files
@@ -60,10 +70,11 @@ Group:                  System Environment/Kernel
 Requires:               kernel%{?_isa} = %{kernel_rel}
 Requires:               kernel-core%{?_isa} = %{kernel_rel}
 
-Requires:               nvidia-gpu-firmware%{?_isa}
-Requires:               nvidia-common%{?_isa}
+Requires:               nvidia-gpu-firmware = 1.0.0-%{release}
+Requires:               nvidia-common = 1.0.0-%{release}
 
 Requires(post):         %{_bindir}/base64
+Requires(post):         %{_bindir}/gunzip
 Requires(post):         libcrypto.so.3()%{?elf_bits}
 Requires(post):         libc.so.6()%{?elf_bits}
 Requires(post):         libz.so.1()%{?elf_bits}
@@ -72,6 +83,9 @@ Requires(post):         ld-linux-x86-64.so.2()%{?elf_bits}
 Requires(posttrans):    dracut%{?_isa}
 
 Provides:               nvidia-modules%{?_isa} = %{version}-%{release}
+Provides:               nvidia-modules = %{version}-%{release}
+
+Obsoletes:              nvidia-modules < %{version}-%{release}
 
 %description -n nvidia-modules-%{kernel_ver}
 NVIDIA graphics kernel modules (Closed Source Version)
@@ -226,6 +240,8 @@ cd %{_builddir}/kernel
 export SYSSRC=%{_prefix}/src/kernels/%{kernel_rel}.%{_arch}
 export SYSOUT=$SYSSRC
 export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
+# Temporarily fix: https://forums.developer.nvidia.com/t/fc42-kernel-6-14-1-570-133-07-fails-to-compile-modules/330104/9
+export CC+=" -std=gnu17"
 %{make_build} modules
 
 # Strip modules
@@ -334,9 +350,9 @@ mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/vi
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
 mv kernel/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
-install -Dm0644 %{SOURCE2} -t %{buildroot}%{_prefix}/lib/modprobe.d
-install -Dm0644 %{SOURCE3} -t %{buildroot}%{_prefix}/lib/modprobe.d
-install -Dm0644 %{SOURCE4} -t %{buildroot}%{_unitdir}-preset
+install -Dm0644 %{SOURCE2} -t %{buildroot}%{_modprobedir}
+install -Dm0644 %{SOURCE3} -t %{buildroot}%{_modprobedir}
+install -Dm0644 %{SOURCE4} -t %{buildroot}%{_presetdir}
 
 jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_icd.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
 jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_layers.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
@@ -407,9 +423,11 @@ if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.de
     chown root:root %{_sysconfdir}/keys/modsign.*
     chmod 400 %{_sysconfdir}/keys/modsign.key
     chmod 444 %{_sysconfdir}/keys/modsign.der
-    echo %{sign_tool} | base64 -d > %{_tmppath}/sign-file
+    base64 -d << EOF | gunzip > %{_tmppath}/sign-file
+%{sign_tool}
+EOF
     chmod +x %{_tmppath}/sign-file
-    for module in /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/*.ko; do
+    for module in /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/nvidia*.ko; do
         %{_tmppath}/sign-file sha256 %{_sysconfdir}/keys/modsign.key %{_sysconfdir}/keys/modsign.der $module
     done
     rm -f %{_tmppath}/sign-file
@@ -488,7 +506,7 @@ fi
 %{_unitdir}/nvidia-resume.service
 %{_unitdir}/nvidia-suspend-then-hibernate.service
 %{_unitdir}-sleep/*
-%{_unitdir}-preset/*
+%{_presetdir}/*
 %dir %{_datadir}/nvidia
 %{_datadir}/nvidia/nvidia-*
 %{_mandir}/man1/nvidia-modprobe.1.gz
@@ -502,7 +520,7 @@ fi
 /lib/firmware/nvidia/%{version}/*
 
 %files -n nvidia-common
-%config %{_prefix}/lib/modprobe.d/*
+%config %{_modprobedir}/*
 %dir %ghost %{_sysconfdir}/keys
 %config(noreplace) %ghost %{_sysconfdir}/keys/*
 
