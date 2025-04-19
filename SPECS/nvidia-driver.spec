@@ -538,6 +538,7 @@ fi
 %ghost %{_datadir}/vulkan/icd.d/nvidia_icd.json
 %ghost %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 %{_datadir}/glvnd/egl_vendor.d/*
+%dir %{_datadir}/nvidia/vulkan
 %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
 %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
 
