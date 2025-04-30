@@ -1,45 +1,94 @@
-name: Build RPM
+name: Build RPM & Release
 
 on:
-  - push
-  - workflow_dispatch
+  push:
+    paths:
+      - 'SPECS/**'
+      - 'SOURCES/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  job:
     runs-on: ubuntu-latest
     container: fedora:latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Install Dependencies
-      run: dnf install -y dnf5-plugins rpmdevtools
+      - name: Install Dependencies
+        run: |
+          dnf install -y dnf5-plugins gnupg rpmdevtools rpm-sign createrepo_c
 
-    - name: Build RPM
-      run: |
-          spectool --get-files --directory=SOURCES --all SPECS/*.spec &&
-          dnf builddep -y SPECS/*.spec &&
-          rpmbuild --define "_topdir ${GITHUB_WORKSPACE}" -ba SPECS/*.spec
+      - name: Import GPG Private Key
+        run: |
+          echo "${{ secrets.GPG_PUBLIC_KEY }}" | gpg --batch --import
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
 
-    - name: Prepare Release
-      id: vars
-      run: |
-        grep -i "^version" SPECS/*.spec | awk "{print \"Driver Ver: \" \$NF}" >> release.log &&
-        rpm -q --qf "Kernel Ver: %{VERSION}-%{RELEASE}\n" kernel-devel >> release.log &&
-        echo "version=$(grep -i "^kernel" release.log | awk "{print \$NF}")" >> $GITHUB_OUTPUT
+      # Remove _gpg_name after rpm v6.0 is released
+      - name: Configure RPM Macros
+        run: |
+          cat > ~/.rpmmacros <<EOF
+          %vendor GitHub (${{ github.repository }})
+          %_topdir ${GITHUB_WORKSPACE}
+          %_openpgp_sign_id ${{ secrets.GPG_KEY_ID }}
+          %_gpg_name Fxzx micah (github/nvidia-driver) <48860358+fxzxmicah@users.noreply.github.com>
+          EOF
 
-    - name: Check Release
-      run: |
-        cat release.log
-        cat leaves.list
+      - name: Build & Sign RPM Packages
+        run: |
+          dnf builddep -y SPECS/*.spec
+          spectool --get-files --sourcedir SPECS/*.spec
+          rpmbuild -ba SPECS/*.spec
+          rpmsign --addsign RPMS/*/*
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.vars.outputs.version }}
-        body_path: release.log
-        files: RPMS/*/*
+      - name: Check and Prepare Release
+        id: vars
+        run: |
+          echo "version=$(rpm -q --queryformat="%{VERSION}-%{RELEASE}" kernel-devel)" >> $GITHUB_OUTPUT
+          cat leaves.list
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.version }}
+          files: RPMS/*/*
+
+      - name: Setup OSS Utility
+        uses: yizhoumo/setup-ossutil@v2
+        with:
+          ossutil-version: "latest"
+          endpoint: ${{ secrets.END_POINT }}
+          access-key-id: ${{ secrets.ACCESSKEY_ID }}
+          access-key-secret: ${{ secrets.ACCESSKEY_SECRET }}
+
+      - name: Create Repository
+        run: |
+          mkdir -p REPO
+          cd $_
+          ln -srf ../RPMS repo
+
+          . /etc/os-release
+
+          ossutil sync "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/repodata/" repodata/ --force --delete
+
+          createrepo_c --update \
+            --distro="cpe:/o:fedoraproject:${ID}:${VERSION_ID},${NAME} ${VERSION_ID}" \
+            --content="region=cn" \
+            --repo="vendor=GitHub (${{ github.repository }}),visibility=internal" \
+            --revision="$(date +%Y%m%d.%H%M)" \
+            -v .
+
+          gpg --batch --yes \
+              --local-user "${{ secrets.GPG_KEY_ID }}" \
+              --armor --detach-sign repodata/repomd.xml
+
+          ossutil sync repo/ "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/repo/" --force --update
+          ossutil sync repodata/ "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/repodata/" --force --delete
+
+          gpg --batch --yes --armor --export "${{ secrets.GPG_KEY_ID }}" > pubkey.gpg
+          ossutil cp pubkey.gpg "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/pubkey.gpg" --force
