@@ -95,9 +95,10 @@ Summary:                NVIDIA EGL libraries
 
 Requires:               %{name}%{?_isa} = %{version}-%{release}
 
-Requires:               %{_datadir}/glvnd/egl_vendor.d
-Requires:               %{_datadir}/vulkan/icd.d
-Requires:               %{_datadir}/vulkan/implicit_layer.d
+Requires:               vulkan-loader%{?_isa}
+
+Requires:               libEGL%{?_isa}
+Requires:               libGLES%{?_isa}
 
 Requires(post):         alternatives
 Requires(preun):        alternatives
@@ -106,29 +107,31 @@ Requires(preun):        alternatives
 NVIDIA EGL libraries
 
 %package -n nvidia-wayland
-Summary:                NVIDIA Wayland libraries
+Summary:                NVIDIA EGLStream Wayland libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
 
-Requires:               %{_datadir}/egl/egl_external_platform.d
+Conflicts:              egl-wayland
 
 %description -n nvidia-wayland
-NVIDIA Wayland libraries
+NVIDIA EGLStream Wayland libraries
 
 %package -n nvidia-gbm
-Summary:                NVIDIA GBM libraries
+Summary:                NVIDIA EGL GBM libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
 
-Requires:               %{_datadir}/egl/egl_external_platform.d
+Conflicts:              egl-gbm
 
 %description -n nvidia-gbm
-NVIDIA GBM libraries
+NVIDIA EGL GBM libraries
 
 %package -n nvidia-opencl
 Summary:                NVIDIA OpenCL libraries
 
 Requires:               %{name}%{?_isa} = %{version}-%{release}
+
+Requires:               libOpenCL.so.1()%{?elf_bits}
 
 %description -n nvidia-opencl
 NVIDIA OpenCL libraries
@@ -191,8 +194,13 @@ Requires:               %{name}%{?_isa} = %{version}-%{release}
 
 Requires:               xorg-x11-server-Xorg
 
+Requires:               vulkan-loader%{?_isa}
+
 Requires(post):         alternatives
 Requires(preun):        alternatives
+
+Provides:               xorg-x11-drv-nvidia = %{version}-%{release}
+Provides:               libglxserver_nvidia.so()%{?elf_bits}
 
 %description -n nvidia-X
 NVIDIA X drivers
@@ -290,7 +298,6 @@ mv libnvidia-ml.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv nvidia-debugdump %{buildroot}%{_bindir}
 mv libcuda.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-opencl.so.%{version} %{buildroot}%{_libdir}/nvidia
-mv libOpenCL.so.* %{buildroot}%{_libdir}/nvidia
 mv nvidia.icd %{buildroot}%{_sysconfdir}/OpenCL/vendors
 mv nvidia-cuda-mps-control %{buildroot}%{_bindir}
 mv nvidia-cuda-mps-server %{buildroot}%{_bindir}
@@ -364,8 +371,6 @@ ln -sr libnvidia-ml.so.1 libnvidia-ml.so
 ln -sr nvidia/libcuda.so.%{version} libcuda.so.1
 ln -sr libcuda.so.1 libcuda.so
 ln -sr nvidia/libnvidia-opencl.so.%{version} libnvidia-opencl.so.1
-ln -sr nvidia/libOpenCL.so.* libOpenCL.so.1
-ln -sr libOpenCL.so.1 libOpenCL.so
 ln -sr nvidia/libnvidia-ptxjitcompiler.so.%{version} libnvidia-ptxjitcompiler.so.1
 ln -sr libnvidia-ptxjitcompiler.so.1 libnvidia-ptxjitcompiler.so
 ln -sr nvidia/libcudadebugger.so.%{version} libcudadebugger.so.1
@@ -497,10 +502,6 @@ fi
 %{_libdir}/libnvidia-glsi.so.%{version}
 %{_libdir}/nvidia/libnvidia-glvkspirv.so.%{version}
 %{_libdir}/libnvidia-glvkspirv.so.%{version}
-%{_libdir}/nvidia/libGLESv2_nvidia.so.%{version}
-%{_libdir}/libGLESv2_nvidia.so.2
-%{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
-%{_libdir}/libGLESv1_CM_nvidia.so.1
 %{_unitdir}/nvidia-suspend.service
 %{_unitdir}/nvidia-hibernate.service
 %{_unitdir}/nvidia-resume.service
@@ -535,6 +536,10 @@ fi
 %{_libdir}/libnvidia-eglcore.so.%{version}
 %{_libdir}/nvidia/libEGL_nvidia.so.%{version}
 %{_libdir}/libEGL_nvidia.so.0
+%{_libdir}/nvidia/libGLESv2_nvidia.so.%{version}
+%{_libdir}/libGLESv2_nvidia.so.2
+%{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
+%{_libdir}/libGLESv1_CM_nvidia.so.1
 %ghost %{_datadir}/vulkan/icd.d/nvidia_icd.json
 %ghost %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 %{_datadir}/glvnd/egl_vendor.d/*
@@ -563,9 +568,6 @@ fi
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvidia-opencl.so.%{version}
 %{_libdir}/libnvidia-opencl.so.1
-%{_libdir}/nvidia/libOpenCL.so.*
-%{_libdir}/libOpenCL.so.1
-%{_libdir}/libOpenCL.so
 %config %{_sysconfdir}/OpenCL/vendors/nvidia.icd
 
 %files -n nvidia-cuda
