@@ -29,13 +29,14 @@ jobs:
           echo "${{ secrets.GPG_PUBLIC_KEY }}" | gpg --batch --import
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
 
-      # Remove _gpg_name after rpm v6.0 is released
       - name: Configure RPM Macros
         run: |
           cat > ~/.rpmmacros <<EOF
           %vendor GitHub (${{ github.repository }})
+          # Different with "github.workspace" in container environment
           %_topdir ${GITHUB_WORKSPACE}
           %_openpgp_sign_id ${{ secrets.GPG_KEY_ID }}
+          # Remove _gpg_name after rpm v6.0 is released
           %_gpg_name Fxzx micah (github/nvidia-driver) <48860358+fxzxmicah@users.noreply.github.com>
           EOF
 
