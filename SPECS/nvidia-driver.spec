@@ -30,15 +30,12 @@ BuildRequires:          kernel-devel
 BuildRequires:          systemd-rpm-macros
 BuildRequires:          jq
 
-Requires:               nvidia-modules%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 Requires:               systemd
 
-Requires:               (nvidia-egl%{?_isa} = %{version}-%{release} if libEGL)
-
-Requires:               (nvidia-X%{?_isa} = %{version}-%{release} if xorg-x11-server-Xorg)
-
 Suggests:               nvidia-doc
+Suggests:               nvidia-smi
 
 ExclusiveArch:          x86_64
 
@@ -107,19 +104,6 @@ Requires:               nvidia-modules%{?_isa} = %{version}-%{release}
 %description -n nvidia-modprobe
 NVIDIA Modprobe Utility
 
-%package -n nvidia-gles
-Summary:                NVIDIA GLES libraries
-
-Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
-
-Requires:               libGLES%{?_isa}
-
-Requires(post):         alternatives
-Requires(preun):        alternatives
-
-%description -n nvidia-gles
-NVIDIA GLES libraries
-
 %package -n nvidia-egl
 Summary:                NVIDIA EGL libraries
 
@@ -136,27 +120,28 @@ Requires(preun):        alternatives
 %description -n nvidia-egl
 NVIDIA EGL libraries
 
-%package -n nvidia-wayland
+%package -n nvidia-egl-wayland
 Summary:                NVIDIA EGLStream Wayland libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
 
 Conflicts:              egl-wayland
 
-%description -n nvidia-wayland
-NVIDIA EGLStream Wayland libraries
+%description -n nvidia-egl-wayland
+NVIDIA EGLStream Wayland libraries (Deprecated)
 
-%package -n nvidia-gbm
+%package -n nvidia-egl-gbm
 Summary:                NVIDIA EGL GBM libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
+Requires:               nvidia-gbm%{?_isa} = %{version}-%{release}
 
 Conflicts:              egl-gbm
 
-%description -n nvidia-gbm
+%description -n nvidia-egl-gbm
 NVIDIA EGL GBM libraries
 
-%package -n nvidia-xwayland
+%package -n nvidia-egl-xwayland
 Summary:                NVIDIA EGL XCB XLIB libraries
 
 Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
@@ -165,13 +150,54 @@ Requires:               xorg-x11-server-Xwayland
 
 Conflicts:              egl-x11
 
-%description -n nvidia-xwayland
+%description -n nvidia-egl-xwayland
 NVIDIA EGL XCB XLIB libraries
+
+%package -n nvidia-smi
+Summary:                NVIDIA System Management Interface
+
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+
+%description -n nvidia-smi
+NVIDIA System Management Interface
+
+%package -n nvidia-gbm
+Summary:                NVIDIA GBM Backend libraries
+
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+
+%description -n nvidia-gbm
+NVIDIA GBM Backend libraries
+
+%package -n nvidia-gles
+Summary:                NVIDIA GLES libraries
+
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+
+Requires:               libGLES%{?_isa}
+
+%description -n nvidia-gles
+NVIDIA GLES libraries
+
+%package -n nvidia-glx
+Summary:                NVIDIA GLX libraries
+
+Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-gbm%{?_isa} = %{version}-%{release}
+
+Requires:               vulkan-loader%{?_isa}
+Requires:               libGL%{?_isa}
+
+Requires(post):         alternatives
+Requires(preun):        alternatives
+
+%description -n nvidia-glx
+NVIDIA GLX libraries
 
 %package -n nvidia-opencl
 Summary:                NVIDIA OpenCL libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 Requires:               libOpenCL.so.1%{?elf_bits}
 
@@ -181,7 +207,7 @@ NVIDIA OpenCL libraries
 %package -n nvidia-cuda
 Summary:                NVIDIA CUDA libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-cuda
 NVIDIA CUDA libraries
@@ -189,7 +215,7 @@ NVIDIA CUDA libraries
 %package -n nvidia-vision
 Summary:                NVIDIA Vision libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-vision
 NVIDIA Vision libraries
@@ -197,25 +223,26 @@ NVIDIA Vision libraries
 %package -n nvidia-vdpau
 Summary:                NVIDIA VDPAU libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 Requires:               libvdpau.so.1%{?elf_bits}
 
 %description -n nvidia-vdpau
 NVIDIA VDPAU libraries
 
-%package -n nvidia-codec
+%package -n nvidia-video
 Summary:                NVIDIA Video Codec libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
-%description -n nvidia-codec
+%description -n nvidia-video
 NVIDIA Video Codec libraries
 
 %package -n nvidia-persistenced
 Summary:                NVIDIA Persistenced Utilities
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-cfg%{?_isa} = %{version}-%{release}
 
 %{?sysusers_requires_compat}
 
@@ -225,7 +252,7 @@ NVIDIA Persistenced Utilities
 %package -n nvidia-powerd
 Summary:                NVIDIA Powerd Utilities
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 Requires:               dbus
 Requires:               systemd
@@ -237,33 +264,33 @@ NVIDIA Powerd Utilities
 Summary:                NVIDIA Settings Application
 
 Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-cfg%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-settings
 NVIDIA Settings Application
 
-%package -n nvidia-X
+%package -n nvidia-x
 Summary:                NVIDIA X drivers
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-glx%{?_isa} = %{version}-%{release}
+Requires:               nvidia-cfg%{?_isa} = %{version}-%{release}
 
-Requires:               vulkan-loader%{?_isa}
-Requires:               libGL%{?_isa}
 Requires:               xorg-x11-xinit%{?_isa}
 Requires:               xorg-x11-server-Xorg%{?_isa}
 
-Requires(post):         alternatives
-Requires(preun):        alternatives
-
 Provides:               xorg-x11-drv-nvidia = %{version}-%{release}
+Provides:               xorg-x11-drv-nvidia%{?_isa} = %{version}-%{release}
 Provides:               libglxserver_nvidia.so%{?elf_bits}
 
-%description -n nvidia-X
+Recommends:             nvidia-egl%{?_isa} = %{version}-%{release}
+
+%description -n nvidia-x
 NVIDIA X drivers
 
 %package -n nvidia-ngx
 Summary:                NVIDIA NGX Utilities
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
@@ -271,10 +298,16 @@ NVIDIA NGX Utilities
 %package -n nvidia-security
 Summary:                NVIDIA Security Libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-security
 NVIDIA Security Libraries
+
+%package -n nvidia-cfg
+Summary:                NVIDIA Configuration Libraries
+
+%description -n nvidia-cfg
+NVIDIA Configuration Libraries
 
 %package -n nvidia-utils
 Summary:                NVIDIA Utilities
@@ -404,7 +437,7 @@ mv nvidia-settings.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
 mv nvidia-xconfig %{buildroot}%{_bindir}
 mv nvidia-xconfig.1.gz %{buildroot}%{_mandir}/man1
 mv nvidia-settings %{buildroot}%{_bindir}
-mv libnvidia-gtk2.so.%{version} %{buildroot}%{_libdir}/nvidia
+rm libnvidia-gtk2.so.%{version}
 mv libnvidia-gtk3.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-wayland-client.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv nvidia-settings.1.gz %{buildroot}%{_mandir}/man1
@@ -420,7 +453,7 @@ mv libnvidia-fbc.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvcuvid.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-encode.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-opticalflow.so.%{version} %{buildroot}%{_libdir}/nvidia
-mv libnvidia-pkcs11.so.%{version} %{buildroot}%{_libdir}/nvidia
+rm libnvidia-pkcs11.so.%{version}
 mv libnvidia-pkcs11-openssl3.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
@@ -462,7 +495,6 @@ ln -sr nvidia/libnvidia-egl-wayland.so.* libnvidia-egl-wayland.so.1
 ln -sr nvidia/libnvidia-egl-gbm.so.* libnvidia-egl-gbm.so.1
 ln -sr nvidia/libnvidia-egl-xcb.so.* libnvidia-egl-xcb.so.1
 ln -sr nvidia/libnvidia-egl-xlib.so.* libnvidia-egl-xlib.so.1
-ln -sr nvidia/libnvidia-gtk2.so.%{version} libnvidia-gtk2.so.%{version}
 ln -sr nvidia/libnvidia-gtk3.so.%{version} libnvidia-gtk3.so.%{version}
 ln -sr nvidia/libnvidia-wayland-client.so.%{version} libnvidia-wayland-client.so.%{version}
 ln -sr nvidia/libnvidia-cfg.so.%{version} libnvidia-cfg.so.1
@@ -480,7 +512,6 @@ ln -sr nvidia/libnvidia-encode.so.%{version} libnvidia-encode.so.1
 ln -sr libnvidia-encode.so.1 libnvidia-encode.so
 ln -sr nvidia/libnvidia-opticalflow.so.%{version} libnvidia-opticalflow.so.1
 ln -sr libnvidia-opticalflow.so.1 libnvidia-opticalflow.so
-ln -sr nvidia/libnvidia-pkcs11.so.%{version} libnvidia-pkcs11.so.%{version}
 ln -sr nvidia/libnvidia-pkcs11-openssl3.so.%{version} libnvidia-pkcs11-openssl3.so.%{version}
 
 cd %{buildroot}%{_prefix}/src/nvidia-%{version}
@@ -521,7 +552,7 @@ update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vu
 %post -n nvidia-powerd
 %systemd_post nvidia-powerd.service
 
-%post -n nvidia-X
+%post -n nvidia-glx
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json 50 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
 %posttrans -n nvidia-modules-%{kernel_ver}
@@ -541,7 +572,7 @@ fi
 %preun -n nvidia-powerd
 %systemd_preun nvidia-powerd.service
 
-%preun -n nvidia-X
+%preun -n nvidia-glx
 if [ $1 -eq 0 ]; then
     update-alternatives --remove nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json || :
 fi
@@ -565,11 +596,7 @@ fi
 %doc NVIDIA_Changelog
 %doc supported-gpus
 %{_bindir}/nvidia-sleep.sh
-%attr(4755,root,root) %{_bindir}/nvidia-smi
 %dir %{_libdir}/nvidia
-%{_libdir}/nvidia/libnvidia-ml.so.%{version}
-%{_libdir}/libnvidia-ml.so.1
-%{_libdir}/libnvidia-ml.so
 %{_libdir}/nvidia/libnvidia-gpucomp.so.%{version}
 %{_libdir}/libnvidia-gpucomp.so.%{version}
 %{_libdir}/nvidia/libnvidia-api.so.*
@@ -588,8 +615,7 @@ fi
 %{_presetdir}/*
 %dir %{_datadir}/nvidia
 %dir %{_datadir}/nvidia/vulkan
-%{_datadir}/nvidia/nvidia-*
-%{_mandir}/man1/nvidia-smi.1.gz
+%{_datadir}/nvidia/nvidia-application-profiles-*-rc
 
 %files -n nvidia-gpu-firmware
 %defattr(-,root,root,-)
@@ -613,13 +639,6 @@ fi
 %attr(4755,root,root) %{_bindir}/nvidia-modprobe
 %{_mandir}/man1/nvidia-modprobe.1.gz
 
-%files -n nvidia-gles
-%defattr(-,root,root,-)
-%{_libdir}/nvidia/libGLESv2_nvidia.so.%{version}
-%{_libdir}/libGLESv2_nvidia.so.2
-%{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
-%{_libdir}/libGLESv1_CM_nvidia.so.1
-
 %files -n nvidia-egl
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvidia-eglcore.so.%{version}
@@ -632,23 +651,19 @@ fi
 %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
 %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
 
-%files -n nvidia-wayland
+%files -n nvidia-egl-wayland
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvidia-egl-wayland.so.*
 %{_libdir}/libnvidia-egl-wayland.so.1
 %{_datadir}/egl/egl_external_platform.d/10_nvidia_wayland.json
 
-%files -n nvidia-gbm
+%files -n nvidia-egl-gbm
 %defattr(-,root,root,-)
-%dir %{_libdir}/gbm
-%{_libdir}/gbm/*
-%{_libdir}/nvidia/libnvidia-allocator.so.%{version}
-%{_libdir}/libnvidia-allocator.so.1
 %{_libdir}/nvidia/libnvidia-egl-gbm.so.*
 %{_libdir}/libnvidia-egl-gbm.so.1
 %{_datadir}/egl/egl_external_platform.d/15_nvidia_gbm.json
 
-%files -n nvidia-xwayland
+%files -n nvidia-egl-xwayland
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvidia-egl-xcb.so.*
 %{_libdir}/libnvidia-egl-xcb.so.1
@@ -656,6 +671,38 @@ fi
 %{_libdir}/libnvidia-egl-xlib.so.1
 %{_datadir}/egl/egl_external_platform.d/20_nvidia_xcb.json
 %{_datadir}/egl/egl_external_platform.d/20_nvidia_xlib.json
+
+%files -n nvidia-smi
+%defattr(-,root,root,-)
+%attr(4755,root,root) %{_bindir}/nvidia-smi
+%{_libdir}/nvidia/libnvidia-ml.so.%{version}
+%{_libdir}/libnvidia-ml.so.1
+%{_libdir}/libnvidia-ml.so
+%{_mandir}/man1/nvidia-smi.1.gz
+
+%files -n nvidia-gbm
+%{_libdir}/nvidia/libnvidia-allocator.so.%{version}
+%{_libdir}/libnvidia-allocator.so.1
+%dir %{_libdir}/gbm
+%{_libdir}/gbm/*
+
+%files -n nvidia-gles
+%defattr(-,root,root,-)
+%{_libdir}/nvidia/libGLESv2_nvidia.so.%{version}
+%{_libdir}/libGLESv2_nvidia.so.2
+%{_libdir}/nvidia/libGLESv1_CM_nvidia.so.%{version}
+%{_libdir}/libGLESv1_CM_nvidia.so.1
+
+%files -n nvidia-glx
+%defattr(-,root,root,-)
+%{_libdir}/nvidia/libGLX_nvidia.so.%{version}
+%{_libdir}/libGLX_nvidia.so.0
+%{_libdir}/nvidia/libnvidia-glcore.so.%{version}
+%{_libdir}/libnvidia-glcore.so.%{version}
+%ghost %{_datadir}/vulkan/icd.d/nvidia_icd.json
+%ghost %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
+%{_datadir}/nvidia/vulkan/nvidia_icd.json
+%{_datadir}/nvidia/vulkan/nvidia_layers.json
 
 %files -n nvidia-opencl
 %defattr(-,root,root,-)
@@ -691,7 +738,7 @@ fi
 %defattr(-,root,root,-)
 %{_libdir}/vdpau/*
 
-%files -n nvidia-codec
+%files -n nvidia-video
 %defattr(-,root,root,-)
 %{_libdir}/nvidia/libnvcuvid.so.%{version}
 %{_libdir}/libnvcuvid.so.1
@@ -702,12 +749,13 @@ fi
 %{_libdir}/nvidia/libnvidia-opticalflow.so.%{version}
 %{_libdir}/libnvidia-opticalflow.so.1
 %{_libdir}/libnvidia-opticalflow.so
+%{_libdir}/nvidia/libnvidia-fbc.so.%{version}
+%{_libdir}/libnvidia-fbc.so.1
+%{_libdir}/libnvidia-fbc.so
 
 %files -n nvidia-persistenced
 %defattr(-,root,root,-)
 %{_bindir}/nvidia-persistenced
-%{_libdir}/nvidia/libnvidia-cfg.so.%{version}
-%{_libdir}/libnvidia-cfg.so.1
 %{_sysusersdir}/nvidia-persistenced.conf
 %{_unitdir}/nvidia-persistenced.service
 %ghost %dir %{_var}/run/nvidia-persistenced
@@ -722,32 +770,20 @@ fi
 %files -n nvidia-settings
 %defattr(-,root,root,-)
 %{_bindir}/nvidia-settings
-%{_libdir}/nvidia/libnvidia-gtk2.so.%{version}
-%{_libdir}/libnvidia-gtk2.so.%{version}
 %{_libdir}/nvidia/libnvidia-gtk3.so.%{version}
 %{_libdir}/libnvidia-gtk3.so.%{version}
 %{_libdir}/nvidia/libnvidia-wayland-client.so.%{version}
 %{_libdir}/libnvidia-wayland-client.so.%{version}
 %{_datadir}/icons/hicolor/**
 %{_datadir}/applications/*
+%{_datadir}/nvidia/nvidia-application-profiles-*-key-documentation
 %{_mandir}/man1/nvidia-settings.1.gz
 
-%files -n nvidia-X
+%files -n nvidia-x
 %defattr(-,root,root,-)
 %attr(4755,root,root) %{_bindir}/nvidia-xconfig
-%{_libdir}/nvidia/libGLX_nvidia.so.%{version}
-%{_libdir}/libGLX_nvidia.so.0
-%{_libdir}/nvidia/libnvidia-glcore.so.%{version}
-%{_libdir}/libnvidia-glcore.so.%{version}
-%{_libdir}/nvidia/libnvidia-fbc.so.%{version}
-%{_libdir}/libnvidia-fbc.so.1
-%{_libdir}/libnvidia-fbc.so
 %{_libdir}/xorg/**
-%ghost %{_datadir}/vulkan/icd.d/nvidia_icd.json
-%ghost %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 %{_datadir}/X11/xorg.conf.d/*
-%{_datadir}/nvidia/vulkan/nvidia_icd.json
-%{_datadir}/nvidia/vulkan/nvidia_layers.json
 %{_mandir}/man1/nvidia-xconfig.1.gz
 
 %files -n nvidia-ngx
@@ -758,10 +794,13 @@ fi
 
 %files -n nvidia-security
 %defattr(-,root,root,-)
-%{_libdir}/nvidia/libnvidia-pkcs11.so.%{version}
-%{_libdir}/libnvidia-pkcs11.so.%{version}
 %{_libdir}/nvidia/libnvidia-pkcs11-openssl3.so.%{version}
 %{_libdir}/libnvidia-pkcs11-openssl3.so.%{version}
+
+%files -n nvidia-cfg
+%defattr(-,root,root,-)
+%{_libdir}/nvidia/libnvidia-cfg.so.%{version}
+%{_libdir}/libnvidia-cfg.so.1
 
 %files -n nvidia-utils
 %defattr(-,root,root,-)
