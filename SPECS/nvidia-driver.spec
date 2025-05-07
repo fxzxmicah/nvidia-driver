@@ -26,7 +26,7 @@ Source6:                nvidia-persistenced.service
 BuildRequires:          gzip
 BuildRequires:          gcc
 BuildRequires:          make
-BuildRequires:          kernel-devel
+BuildRequires:          kernel-devel = %{kernel_rel}
 BuildRequires:          systemd-rpm-macros
 BuildRequires:          jq
 
@@ -93,6 +93,8 @@ Provides:               nvidia-modules = %{version}-%{release}
 
 Obsoletes:              nvidia-modules < %{version}-%{release}
 
+Supplements:            kernel-modules%{?_isa} = %{kernel_rel}
+
 %description -n nvidia-modules-%{kernel_ver}
 NVIDIA graphics kernel modules (Closed Source Version)
 
@@ -116,6 +118,8 @@ Requires:               libEGL%{?_isa}
 
 Requires(post):         alternatives
 Requires(preun):        alternatives
+
+Supplements:            %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-egl
 NVIDIA EGL libraries
@@ -190,6 +194,8 @@ Requires:               libGL%{?_isa}
 
 Requires(post):         alternatives
 Requires(preun):        alternatives
+
+Supplements:            %{name}%{?_isa} = %{version}-%{release}
 
 %description -n nvidia-glx
 NVIDIA GLX libraries
@@ -615,7 +621,7 @@ fi
 %{_presetdir}/*
 %dir %{_datadir}/nvidia
 %dir %{_datadir}/nvidia/vulkan
-%{_datadir}/nvidia/nvidia-application-profiles-*-rc
+%{_datadir}/nvidia/nvidia-application-profiles-%{version}-rc
 
 %files -n nvidia-gpu-firmware
 %defattr(-,root,root,-)
@@ -776,7 +782,7 @@ fi
 %{_libdir}/libnvidia-wayland-client.so.%{version}
 %{_datadir}/icons/hicolor/**
 %{_datadir}/applications/*
-%{_datadir}/nvidia/nvidia-application-profiles-*-key-documentation
+%{_datadir}/nvidia/nvidia-application-profiles-%{version}-key-documentation
 %{_mandir}/man1/nvidia-settings.1.gz
 
 %files -n nvidia-x
