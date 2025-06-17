@@ -9,7 +9,7 @@
 
 Name:                   nvidia-driver
 Version:                570.153.02
-Release:                1%{?dist}
+Release:                %{autorelease}
 Summary:                NVIDIA binary driver for Linux
 Group:                  System Environment/Graphics
 License:                NVIDIA
@@ -825,4 +825,4 @@ fi
 %{_prefix}/src/nvidia-%{version}/**
 
 %changelog
-%autochangelog
+%{autochangelog}
