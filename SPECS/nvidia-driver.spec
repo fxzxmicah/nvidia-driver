@@ -8,7 +8,7 @@
 %endif
 
 Name:                   nvidia-driver
-Version:                570.153.02
+Version:                570.169
 Release:                %{autorelease}
 Summary:                NVIDIA binary driver for Linux
 Group:                  System Environment/Graphics
@@ -350,8 +350,6 @@ cd %{_builddir}/kernel
 export SYSSRC=%{_prefix}/src/kernels/%{kernel_rel}.%{_arch}
 export SYSOUT=$SYSSRC
 export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
-# Temporarily fix: https://forums.developer.nvidia.com/t/fc42-kernel-6-14-1-570-133-07-fails-to-compile-modules/330104/9
-export CC+=" -std=gnu17"
 %{make_build} modules
 
 # Strip modules
