@@ -1,5 +1,4 @@
 %define kernel_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}-%%{RELEASE}")
-%define kernel_ver %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}")
 
 %define sign_tool %(gzip -c %{_prefix}/src/kernels/%{kernel_rel}.%{_arch}/scripts/sign-file | base64)
 
@@ -49,7 +48,8 @@ Group:                  System Environment/Hardware
 Epoch:                  1
 BuildArch:              noarch
 
-Provides:               nvidia-gpu-firmware = 1.0.0-%{release}
+Provides:               nvidia-gpu-firmware = %{version}-%{release}
+Provides:               installonlypkg(nvidia-gpu-firmware)
 
 %description -n nvidia-gpu-firmware
 NVIDIA Graphics firmware
@@ -69,14 +69,14 @@ Provides:               nvidia-common = 1.0.0-%{release}
 %description -n nvidia-common
 NVIDIA Graphics common files
 
-%package -n nvidia-modules-%{kernel_ver}
+%package -n nvidia-modules
 Summary:                NVIDIA Graphics kernel modules
 Group:                  System Environment/Kernel
 
-Requires:               kernel%{?_isa} = %{kernel_rel}
-Requires:               kernel-core%{?_isa} = %{kernel_rel}
+Requires:               kernel-uname-r = %{kernel_rel}.%{_arch}
+Requires:               kernel-modules-core-uname-r = %{kernel_rel}.%{_arch}
 
-Requires:               nvidia-gpu-firmware = 1.0.0-%{release}
+Requires:               nvidia-gpu-firmware = %{version}-%{release}
 Requires:               nvidia-common = 1.0.0-%{release}
 
 Requires(post):         %{_bindir}/base64
@@ -88,14 +88,13 @@ Requires(post):         ld-linux-x86-64.so.2%{?elf_bits}
 
 Requires(posttrans):    dracut%{?_isa}
 
-Provides:               nvidia-modules%{?_isa} = %{version}-%{release}
-Provides:               nvidia-modules = %{version}-%{release}
-
-Obsoletes:              nvidia-modules < %{version}-%{release}
+Provides:               nvidia-modules-uname-r = %{kernel_rel}.%{_arch}
+Provides:               nvidia-modules-%{_arch} = %{kernel_rel}
+Provides:               installonlypkg(nvidia-modules)
 
 Supplements:            kernel-modules%{?_isa} = %{kernel_rel}
 
-%description -n nvidia-modules-%{kernel_ver}
+%description -n nvidia-modules
 NVIDIA graphics kernel modules (Closed Source Version)
 
 %package -n nvidia-modprobe
@@ -342,7 +341,7 @@ cd %{_sourcedir}
 # Verify sha256sum
 sha256sum -c %{SOURCE1}
 
-rm -r %{_builddir}
+rm -rf %{_builddir}
 sh %{SOURCE0} --extract-only --target %{_builddir}
 
 %build
@@ -473,6 +472,9 @@ install -Dm0644 %{SOURCE6} -t %{buildroot}%{_unitdir}
 jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_icd.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
 jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_layers.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
 
+cp LICENSE LICENSE-%{version}-%{kernel_rel}
+cp LICENSE LICENSE-%{version}
+
 # Create symbolic links
 cd %{buildroot}%{_libdir}
 ln -sr nvidia/libnvidia-ml.so.%{version} libnvidia-ml.so.1
@@ -539,7 +541,7 @@ ls -l * > %{_topdir}/leaves.list
 %post
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
 
-%post -n nvidia-modules-%{kernel_ver}
+%post -n nvidia-modules
 if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
     chown root:root %{_sysconfdir}/keys/modsign.*
     chmod 400 %{_sysconfdir}/keys/modsign.key
@@ -567,8 +569,10 @@ update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vu
 %post -n nvidia-glx
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json 50 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
-%posttrans -n nvidia-modules-%{kernel_ver}
-dracut -f --kver "%{kernel_rel}.%{_arch}" || exit $?
+%posttrans -n nvidia-modules
+if [ ! -f %{_localstatedir}/lib/rpm-state/kernel/need_to_run_dracut_%{kernel_rel}.%{_arch} ]; then
+    dracut -f --kver "%{kernel_rel}.%{_arch}" || exit $?
+fi
 
 %preun
 %systemd_preun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
@@ -592,7 +596,7 @@ fi
 %postun
 %systemd_postun nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
 
-%postun -n nvidia-modules-%{kernel_ver}
+%postun -n nvidia-modules
 /sbin/depmod -a %{kernel_rel}.%{_arch}
 
 %postun -n nvidia-persistenced
@@ -631,7 +635,7 @@ fi
 
 %files -n nvidia-gpu-firmware
 %defattr(-,root,root,-)
-%license LICENSE
+%license LICENSE-%{version}
 %dir /lib/firmware/nvidia
 %dir /lib/firmware/nvidia/%{version}
 /lib/firmware/nvidia/%{version}/*
@@ -641,9 +645,9 @@ fi
 %dir %ghost %{_sysconfdir}/keys
 %config(noreplace) %ghost %{_sysconfdir}/keys/*
 
-%files -n nvidia-modules-%{kernel_ver}
+%files -n nvidia-modules
 %defattr(-,root,root,-)
-%license LICENSE
+%license LICENSE-%{version}-%{kernel_rel}
 /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/*
 
 %files -n nvidia-modprobe
