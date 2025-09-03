@@ -1,6 +1,6 @@
 %define kernel_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}-%%{RELEASE}")
 
-%define sign_tool %(gzip -c %{_prefix}/src/kernels/%{kernel_rel}.%{_arch}/scripts/sign-file | base64)
+%define sign_tool %(gzip -c %{SOURCE7} | base64)
 
 %if 0%{?__isa_bits} == 64
 %global elf_bits ()(64bit)
@@ -22,12 +22,17 @@ Source4:                86-nvidia-driver.preset
 Source5:                nvidia-persistenced.conf
 Source6:                nvidia-persistenced.service
 
-BuildRequires:          gzip
+Source7:                https://github.com/fxzxmic/sign-module/releases/download/v1.0.1/sign-module
+
 BuildRequires:          gcc
 BuildRequires:          make
 BuildRequires:          kernel-devel = %{kernel_rel}
 BuildRequires:          systemd-rpm-macros
 BuildRequires:          jq
+BuildRequires:          xz
+
+# For sign-module utility
+BuildRequires:          gzip
 
 Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
 
@@ -79,12 +84,13 @@ Requires:               kernel-modules-core-uname-r = %{kernel_rel}.%{_arch}
 Requires:               nvidia-gpu-firmware = %{version}-%{release}
 Requires:               nvidia-common = 1.0.0-%{release}
 
+# For sign-module utility
 Requires(post):         %{_bindir}/base64
 Requires(post):         %{_bindir}/gunzip
 Requires(post):         libcrypto.so.3%{?elf_bits}
+Requires(post):         liblzma.so.5%{?elf_bits}
 Requires(post):         libc.so.6%{?elf_bits}
 Requires(post):         libz.so.1%{?elf_bits}
-Requires(post):         ld-linux-x86-64.so.2%{?elf_bits}
 
 Requires(posttrans):    dracut%{?_isa}
 
@@ -354,6 +360,9 @@ export NV_EXCLUDE_KERNEL_MODULES="nvidia-vgpu-vfio nvidia-peermem"
 # Strip modules
 strip --strip-unneeded *.ko
 
+# Compress modules
+xz --check=crc32 -9 *.ko
+
 %install
 mkdir -p %{buildroot}/lib/firmware/nvidia/%{version}
 mkdir -p %{buildroot}%{_sysusersdir}
@@ -459,7 +468,7 @@ mv libnvidia-encode.so.%{version} %{buildroot}%{_libdir}/nvidia
 mv libnvidia-opticalflow.so.%{version} %{buildroot}%{_libdir}/nvidia
 rm libnvidia-pkcs11.so.%{version}
 mv libnvidia-pkcs11-openssl3.so.%{version} %{buildroot}%{_libdir}/nvidia
-mv kernel/*.ko %{buildroot}/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video
+mv kernel/*.ko* %{buildroot}/lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video
 mv nvidia-settings.desktop %{buildroot}%{_datadir}/applications
 mv kernel/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
@@ -546,14 +555,14 @@ if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.de
     chown root:root %{_sysconfdir}/keys/modsign.*
     chmod 400 %{_sysconfdir}/keys/modsign.key
     chmod 444 %{_sysconfdir}/keys/modsign.der
-    base64 -d << EOF | gunzip > %{_tmppath}/sign-file
+    base64 -d << EOF | gunzip > %{_tmppath}/sign-module
 %{sign_tool}
 EOF
-    chmod +x %{_tmppath}/sign-file
-    for module in /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/nvidia*.ko; do
-        %{_tmppath}/sign-file sha256 %{_sysconfdir}/keys/modsign.key %{_sysconfdir}/keys/modsign.der $module
+    chmod +x %{_tmppath}/sign-module
+    for module in /lib/modules/%{kernel_rel}.%{_arch}/kernel/drivers/video/nvidia*.ko*; do
+        %{_tmppath}/sign-module sha256 %{_sysconfdir}/keys/modsign.key %{_sysconfdir}/keys/modsign.der $module
     done
-    rm -f %{_tmppath}/sign-file
+    rm -f %{_tmppath}/sign-module
 fi
 /sbin/depmod -a %{kernel_rel}.%{_arch}
 
