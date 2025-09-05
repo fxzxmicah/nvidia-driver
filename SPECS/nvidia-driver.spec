@@ -1,5 +1,8 @@
 %define kernel_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}-%%{RELEASE}")
 
+%define main_rel %{autorelease}
+%define module_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}").%{main_rel}
+
 %define sign_tool %(gzip -c %{SOURCE7} | base64)
 
 %if 0%{?__isa_bits} == 64
@@ -8,7 +11,7 @@
 
 Name:                   nvidia-driver
 Version:                580.76.05
-Release:                %{autorelease}
+Release:                %{main_rel}
 Summary:                NVIDIA binary driver for Linux
 Group:                  System Environment/Graphics
 License:                NVIDIA
@@ -34,7 +37,7 @@ BuildRequires:          xz
 # For sign-module utility
 BuildRequires:          gzip
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 Requires:               systemd
 
@@ -53,7 +56,7 @@ Group:                  System Environment/Hardware
 Epoch:                  1
 BuildArch:              noarch
 
-Provides:               nvidia-gpu-firmware = %{version}-%{release}
+Provides:               nvidia-gpu-firmware = %{version}-%{main_rel}
 Provides:               installonlypkg(nvidia-gpu-firmware)
 
 %description -n nvidia-gpu-firmware
@@ -65,11 +68,11 @@ Group:                  System Environment/Kernel
 
 BuildArch:              noarch
 
-Requires:               nvidia-modules = %{version}-%{release}
+Requires:               nvidia-modules = %{version}-%{main_rel}
 
 Requires:               module-init-tools
 
-Provides:               nvidia-common = 1.0.0-%{release}
+Provides:               nvidia-common = 1.0.0-%{main_rel}
 
 %description -n nvidia-common
 NVIDIA Graphics common files
@@ -78,11 +81,13 @@ NVIDIA Graphics common files
 Summary:                NVIDIA Graphics kernel modules
 Group:                  System Environment/Kernel
 
+Release:                %{module_rel}
+
 Requires:               kernel-uname-r = %{kernel_rel}.%{_arch}
 Requires:               kernel-modules-core-uname-r = %{kernel_rel}.%{_arch}
 
-Requires:               nvidia-gpu-firmware = %{version}-%{release}
-Requires:               nvidia-common = 1.0.0-%{release}
+Requires:               nvidia-gpu-firmware = %{version}-%{main_rel}
+Requires:               nvidia-common = 1.0.0-%{main_rel}
 
 # For sign-module utility
 Requires(post):         %{_bindir}/base64
@@ -98,7 +103,10 @@ Provides:               nvidia-modules-uname-r = %{kernel_rel}.%{_arch}
 Provides:               nvidia-modules-%{_arch} = %{kernel_rel}
 Provides:               installonlypkg(nvidia-modules)
 
-Supplements:            kernel-modules%{?_isa} = %{kernel_rel}
+Provides:               nvidia-modules = %{version}-%{main_rel}
+Provides:               nvidia-modules%{?_isa} = %{version}-%{main_rel}
+
+Supplements:            kernel-modules-uname-r = %{kernel_rel}.%{_arch}
 
 %description -n nvidia-modules
 NVIDIA graphics kernel modules (Closed Source Version)
@@ -106,7 +114,7 @@ NVIDIA graphics kernel modules (Closed Source Version)
 %package -n nvidia-modprobe
 Summary:                NVIDIA Modprobe Utility
 
-Requires:               nvidia-modules%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modules%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-modprobe
 NVIDIA Modprobe Utility
@@ -114,9 +122,9 @@ NVIDIA Modprobe Utility
 %package -n nvidia-egl
 Summary:                NVIDIA EGL libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{main_rel}
 
-Requires:               (nvidia-gles%{?_isa} = %{version}-%{release} if libGLES)
+Requires:               (nvidia-gles%{?_isa} = %{version}-%{main_rel} if libGLES)
 
 Requires:               vulkan-loader%{?_isa}
 Requires:               libEGL%{?_isa}
@@ -124,7 +132,7 @@ Requires:               libEGL%{?_isa}
 Requires(post):         alternatives
 Requires(preun):        alternatives
 
-Supplements:            %{name}%{?_isa} = %{version}-%{release}
+Supplements:            %{name}%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-egl
 NVIDIA EGL libraries
@@ -132,7 +140,7 @@ NVIDIA EGL libraries
 %package -n nvidia-egl-wayland
 Summary:                NVIDIA EGLStream Wayland libraries
 
-Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
+Requires:               nvidia-egl%{?_isa} = %{version}-%{main_rel}
 
 Conflicts:              egl-wayland
 
@@ -142,8 +150,8 @@ NVIDIA EGLStream Wayland libraries (Deprecated)
 %package -n nvidia-egl-gbm
 Summary:                NVIDIA EGL GBM libraries
 
-Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
-Requires:               nvidia-gbm%{?_isa} = %{version}-%{release}
+Requires:               nvidia-egl%{?_isa} = %{version}-%{main_rel}
+Requires:               nvidia-gbm%{?_isa} = %{version}-%{main_rel}
 
 Conflicts:              egl-gbm
 
@@ -153,7 +161,7 @@ NVIDIA EGL GBM libraries
 %package -n nvidia-egl-xwayland
 Summary:                NVIDIA EGL XCB XLIB libraries
 
-Requires:               nvidia-egl%{?_isa} = %{version}-%{release}
+Requires:               nvidia-egl%{?_isa} = %{version}-%{main_rel}
 
 Requires:               xorg-x11-server-Xwayland
 
@@ -165,7 +173,7 @@ NVIDIA EGL XCB XLIB libraries
 %package -n nvidia-smi
 Summary:                NVIDIA System Management Interface
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-smi
 NVIDIA System Management Interface
@@ -173,7 +181,7 @@ NVIDIA System Management Interface
 %package -n nvidia-gbm
 Summary:                NVIDIA GBM Backend libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-gbm
 NVIDIA GBM Backend libraries
@@ -181,7 +189,7 @@ NVIDIA GBM Backend libraries
 %package -n nvidia-gles
 Summary:                NVIDIA GLES libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 Requires:               libGLES%{?_isa}
 
@@ -191,8 +199,8 @@ NVIDIA GLES libraries
 %package -n nvidia-glx
 Summary:                NVIDIA GLX libraries
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
-Requires:               nvidia-gbm%{?_isa} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{main_rel}
+Requires:               nvidia-gbm%{?_isa} = %{version}-%{main_rel}
 
 Requires:               vulkan-loader%{?_isa}
 Requires:               libGL%{?_isa}
@@ -200,7 +208,7 @@ Requires:               libGL%{?_isa}
 Requires(post):         alternatives
 Requires(preun):        alternatives
 
-Supplements:            %{name}%{?_isa} = %{version}-%{release}
+Supplements:            %{name}%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-glx
 NVIDIA GLX libraries
@@ -208,7 +216,7 @@ NVIDIA GLX libraries
 %package -n nvidia-opencl
 Summary:                NVIDIA OpenCL libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 Requires:               libOpenCL.so.1%{?elf_bits}
 
@@ -218,7 +226,7 @@ NVIDIA OpenCL libraries
 %package -n nvidia-cuda
 Summary:                NVIDIA CUDA libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-cuda
 NVIDIA CUDA libraries
@@ -226,7 +234,7 @@ NVIDIA CUDA libraries
 %package -n nvidia-vision
 Summary:                NVIDIA Vision libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-vision
 NVIDIA Vision libraries
@@ -234,7 +242,7 @@ NVIDIA Vision libraries
 %package -n nvidia-vdpau
 Summary:                NVIDIA VDPAU libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 Requires:               libvdpau.so.1%{?elf_bits}
 
@@ -244,7 +252,7 @@ NVIDIA VDPAU libraries
 %package -n nvidia-video
 Summary:                NVIDIA Video Codec libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-video
 NVIDIA Video Codec libraries
@@ -252,8 +260,8 @@ NVIDIA Video Codec libraries
 %package -n nvidia-persistenced
 Summary:                NVIDIA Persistenced Utilities
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
-Requires:               nvidia-cfg%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
+Requires:               nvidia-cfg%{?_isa} = %{version}-%{main_rel}
 
 %{?sysusers_requires_compat}
 
@@ -263,7 +271,7 @@ NVIDIA Persistenced Utilities
 %package -n nvidia-powerd
 Summary:                NVIDIA Powerd Utilities
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 Requires:               dbus
 Requires:               systemd
@@ -274,8 +282,8 @@ NVIDIA Powerd Utilities
 %package -n nvidia-settings
 Summary:                NVIDIA Settings Application
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
-Requires:               nvidia-cfg%{?_isa} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{main_rel}
+Requires:               nvidia-cfg%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-settings
 NVIDIA Settings Application
@@ -283,17 +291,17 @@ NVIDIA Settings Application
 %package -n nvidia-x
 Summary:                NVIDIA X drivers
 
-Requires:               nvidia-glx%{?_isa} = %{version}-%{release}
-Requires:               nvidia-cfg%{?_isa} = %{version}-%{release}
+Requires:               nvidia-glx%{?_isa} = %{version}-%{main_rel}
+Requires:               nvidia-cfg%{?_isa} = %{version}-%{main_rel}
 
 Requires:               xorg-x11-xinit%{?_isa}
 Requires:               xorg-x11-server-Xorg%{?_isa}
 
-Provides:               xorg-x11-drv-nvidia = %{version}-%{release}
-Provides:               xorg-x11-drv-nvidia%{?_isa} = %{version}-%{release}
+Provides:               xorg-x11-drv-nvidia = %{version}-%{main_rel}
+Provides:               xorg-x11-drv-nvidia%{?_isa} = %{version}-%{main_rel}
 Provides:               libglxserver_nvidia.so%{?elf_bits}
 
-Recommends:             nvidia-egl%{?_isa} = %{version}-%{release}
+Recommends:             nvidia-egl%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-x
 NVIDIA X drivers
@@ -301,7 +309,7 @@ NVIDIA X drivers
 %package -n nvidia-ngx
 Summary:                NVIDIA NGX Utilities
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-ngx
 NVIDIA NGX Utilities
@@ -309,7 +317,7 @@ NVIDIA NGX Utilities
 %package -n nvidia-security
 Summary:                NVIDIA Security Libraries
 
-Requires:               nvidia-modprobe%{?_isa} = %{version}-%{release}
+Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-security
 NVIDIA Security Libraries
@@ -323,7 +331,7 @@ NVIDIA Configuration Libraries
 %package -n nvidia-utils
 Summary:                NVIDIA Utilities
 
-Requires:               %{name}%{?_isa} = %{version}-%{release}
+Requires:               %{name}%{?_isa} = %{version}-%{main_rel}
 
 %description -n nvidia-utils
 NVIDIA Utilities
