@@ -22,7 +22,7 @@ Source4:                86-nvidia-driver.preset
 Source5:                nvidia-persistenced.conf
 Source6:                nvidia-persistenced.service
 
-Source7:                https://github.com/fxzxmic/sign-module/releases/download/v1.0.1/sign-module
+Source7:                https://github.com/fxzxmic/sign-module/releases/download/v1.0.2/sign-module
 
 BuildRequires:          gcc
 BuildRequires:          make
