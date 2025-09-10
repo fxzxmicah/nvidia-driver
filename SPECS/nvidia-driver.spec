@@ -1,9 +1,14 @@
+# Feature: sign module
+%define sign_module 1
+
 %define kernel_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}-%%{RELEASE}")
 
 %define main_rel %{autorelease}
 %define module_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}").%{main_rel}
 
+%if %{sign_module}
 %define sign_tool %(gzip -c %{SOURCE7} | base64)
+%endif
 
 %if 0%{?__isa_bits} == 64
 %global elf_bits ()(64bit)
@@ -25,7 +30,9 @@ Source4:                86-nvidia-driver.preset
 Source5:                nvidia-persistenced.conf
 Source6:                nvidia-persistenced.service
 
+%if %{sign_module}
 Source7:                https://github.com/fxzxmic/sign-module/releases/download/v1.0.2/sign-module
+%endif
 
 BuildRequires:          gcc
 BuildRequires:          make
@@ -34,8 +41,10 @@ BuildRequires:          systemd-rpm-macros
 BuildRequires:          jq
 BuildRequires:          xz
 
+%if %{sign_module}
 # For sign-module utility
 BuildRequires:          gzip
+%endif
 
 Requires:               nvidia-modprobe%{?_isa} = %{version}-%{main_rel}
 
@@ -89,6 +98,7 @@ Requires:               kernel-modules-core-uname-r = %{kernel_rel}.%{_arch}
 Requires:               nvidia-gpu-firmware = %{version}-%{main_rel}
 Requires:               nvidia-common = 1.0.0-%{main_rel}
 
+%if %{sign_module}
 # For sign-module utility
 Requires(post):         %{_bindir}/base64
 Requires(post):         %{_bindir}/gunzip
@@ -96,6 +106,7 @@ Requires(post):         libcrypto.so.3%{?elf_bits}
 Requires(post):         liblzma.so.5%{?elf_bits}
 Requires(post):         libc.so.6%{?elf_bits}
 Requires(post):         libz.so.1%{?elf_bits}
+%endif
 
 Requires(posttrans):    dracut%{?_isa}
 
@@ -397,8 +408,10 @@ mkdir -p %{buildroot}%{_datadir}/applications
 mkdir -p %{buildroot}%{_prefix}/src/nvidia-%{version}
 mkdir -p %{buildroot}%{_var}/run/nvidia-persistenced
 
+%if %{sign_module}
 install -Dm0400 /dev/null -t %{buildroot}%{_sysconfdir}/keys/modsign.key
 install -Dm0444 /dev/null -t %{buildroot}%{_sysconfdir}/keys/modsign.der
+%endif
 install -Dm0644 /dev/null -t %{buildroot}%{_datadir}/vulkan/icd.d/nvidia_icd.json
 install -Dm0644 /dev/null -t %{buildroot}%{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json
 
@@ -559,6 +572,7 @@ ls -l * > %{_topdir}/leaves.list
 %systemd_post nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend-then-hibernate.service
 
 %post -n nvidia-modules
+%if %{sign_module}
 if [ -f %{_sysconfdir}/keys/modsign.key ] && [ -f %{_sysconfdir}/keys/modsign.der ]; then
     chown root:root %{_sysconfdir}/keys/modsign.*
     chmod 400 %{_sysconfdir}/keys/modsign.key
@@ -572,7 +586,12 @@ EOF
     done
     rm -f %{_tmppath}/sign-module
 fi
+%endif
 /sbin/depmod -a %{kernel_rel}.%{_arch}
+if [ ! -f %{_localstatedir}/lib/rpm-state/kernel/installing_core_%{kernel_rel}.%{_arch} ]; then
+    mkdir -p %{_localstatedir}/lib/rpm-state/kernel
+    touch %{_localstatedir}/lib/rpm-state/kernel/nvidia_need_to_run_dracut_%{version}_%{kernel_rel}.%{_arch}
+fi
 
 %post -n nvidia-egl
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/egl-nvidia_icd.json 25 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
@@ -587,7 +606,8 @@ update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vu
 update-alternatives --install %{_datadir}/vulkan/icd.d/nvidia_icd.json nvidia-vulkan-icd %{_datadir}/nvidia/vulkan/nvidia_icd.json 50 --follower %{_datadir}/vulkan/implicit_layer.d/nvidia_layers.json nvidia-vulkan-layers %{_datadir}/nvidia/vulkan/nvidia_layers.json
 
 %posttrans -n nvidia-modules
-if [ ! -f %{_localstatedir}/lib/rpm-state/kernel/need_to_run_dracut_%{kernel_rel}.%{_arch} ]; then
+if [ -f %{_localstatedir}/lib/rpm-state/kernel/nvidia_need_to_run_dracut_%{version}_%{kernel_rel}.%{_arch} ]; then
+    rm -f %{_localstatedir}/lib/rpm-state/kernel/nvidia_need_to_run_dracut_%{version}_%{kernel_rel}.%{_arch}
     dracut -f --kver "%{kernel_rel}.%{_arch}" || exit $?
 fi
 
@@ -659,8 +679,10 @@ fi
 
 %files -n nvidia-common
 %config %{_modprobedir}/*
+%if %{sign_module}
 %dir %ghost %{_sysconfdir}/keys
 %config(noreplace) %ghost %{_sysconfdir}/keys/*
+%endif
 
 %files -n nvidia-modules
 %defattr(-,root,root,-)
