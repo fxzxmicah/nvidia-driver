@@ -66,7 +66,7 @@ Epoch:                  1
 BuildArch:              noarch
 
 Provides:               nvidia-gpu-firmware = %{version}-%{main_rel}
-Provides:               installonlypkg(nvidia-gpu-firmware)
+Provides:               installonlypkg(kernel-module)
 
 %description -n nvidia-gpu-firmware
 NVIDIA Graphics firmware
@@ -112,7 +112,7 @@ Requires(posttrans):    dracut%{?_isa}
 
 Provides:               nvidia-modules-uname-r = %{kernel_rel}.%{_arch}
 Provides:               nvidia-modules-%{_arch} = %{kernel_rel}
-Provides:               installonlypkg(nvidia-modules)
+Provides:               installonlypkg(kernel-module)
 
 Provides:               nvidia-modules = %{version}-%{main_rel}
 Provides:               nvidia-modules%{?_isa} = %{version}-%{main_rel}
