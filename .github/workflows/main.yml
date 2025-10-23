@@ -5,7 +5,6 @@ on:
     paths:
       - 'SPECS/**'
       - 'SOURCES/**'
-      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -22,12 +21,13 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          dnf install -y dnf5-plugins gnupg rpmdevtools rpm-sign createrepo_c
+          dnf install -y gnupg rpmdevtools rpm-sign createrepo_c
 
       - name: Import GPG Private Key
-        run: |
-          echo "${{ secrets.GPG_PUBLIC_KEY }}" | gpg --batch --import
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        uses: crazy-max/ghaction-import-gpg@v5
+        id: gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
 
       - name: Configure RPM Macros
         run: |
@@ -35,9 +35,9 @@ jobs:
           %vendor GitHub (${{ github.repository }})
           # Different with "github.workspace" in container environment
           %_topdir ${GITHUB_WORKSPACE}
-          %_openpgp_sign_id ${{ secrets.GPG_KEY_ID }}
+          %_openpgp_sign_id ${{ steps.gpg.outputs.keyid }}
           # Remove _gpg_name after rpm v6.0 is released
-          %_gpg_name Fxzx micah (github/nvidia-driver) <48860358+fxzxmicah@users.noreply.github.com>
+          %_gpg_name ${{ steps.gpg.outputs.name }} ${{ steps.gpg.outputs.email }}
           EOF
 
       - name: Build & Sign RPM Packages
@@ -85,11 +85,11 @@ jobs:
             -v .
 
           gpg --batch --yes \
-              --local-user "${{ secrets.GPG_KEY_ID }}" \
+              --local-user "${{ steps.gpg.outputs.keyid }}" \
               --armor --detach-sign repodata/repomd.xml
 
           ossutil sync repo/ "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/repo/" --force --update
           ossutil sync repodata/ "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/repodata/" --force --delete
 
-          gpg --batch --yes --armor --export "${{ secrets.GPG_KEY_ID }}" > pubkey.gpg
+          gpg --batch --yes --armor --export "${{ steps.gpg.outputs.keyid }}" > pubkey.gpg
           ossutil cp pubkey.gpg "oss://${{ secrets.OSS_BUCKET }}/${ID}-${VERSION_ID}/pubkey.gpg" --force
