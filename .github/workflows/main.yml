@@ -13,7 +13,7 @@ permissions:
 jobs:
   job:
     runs-on: ubuntu-latest
-    container: fedora:latest
+    container: fedora:${{ github.ref_name }}
 
     steps:
       - name: Checkout Repository
@@ -21,7 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          dnf install -y gnupg rpmdevtools rpm-sign createrepo_c
+          dnf install -y rpmdevtools rpm-sign createrepo_c
 
       - name: Import GPG Private Key
         uses: crazy-max/ghaction-import-gpg@v5
@@ -36,8 +36,6 @@ jobs:
           # Different with "github.workspace" in container environment
           %_topdir ${GITHUB_WORKSPACE}
           %_openpgp_sign_id ${{ steps.gpg.outputs.keyid }}
-          # Remove _gpg_name after rpm v6.0 is released
-          %_gpg_name ${{ steps.gpg.outputs.name }} (github/nvidia-driver) <${{ steps.gpg.outputs.email }}>
           EOF
 
       - name: Build & Sign RPM Packages
