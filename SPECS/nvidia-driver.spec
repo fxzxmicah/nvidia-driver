@@ -9,7 +9,7 @@
 %define module_rel %(dnf repoquery kernel-devel --latest-limit=1 --queryformat="%%{VERSION}")%{?dist}
 
 %if %{sign_module}
-%define sign_tool %(gzip -c %{SOURCE7} | base64)
+%define sign_tool %(gzip -c %{SOURCE8} | base64)
 %endif
 
 %if %{open_module}
@@ -34,12 +34,13 @@ Source1:                https://download.nvidia.com/XFree86/Linux-%{_arch}/%{ver
 
 Source2:                nouveau.conf
 Source3:                nvidia.conf
-Source4:                86-nvidia-driver.preset
-Source5:                nvidia-persistenced.conf
-Source6:                nvidia-persistenced.service
+Source4:                31-nvidia-uvm.rules
+Source5:                86-nvidia-driver.preset
+Source6:                nvidia-persistenced.conf
+Source7:                nvidia-persistenced.service
 
 %if %{sign_module}
-Source7:                https://github.com/fxzxmic/sign-module/releases/download/v1.0.2/sign-module
+Source8:                https://github.com/fxzxmic/sign-module/releases/download/v1.0.2/sign-module
 %endif
 
 BuildRequires:          gcc
@@ -560,9 +561,10 @@ mv %{module_dir}/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
 install -Dm0644 %{SOURCE2} -t %{buildroot}%{_modprobedir}
 install -Dm0644 %{SOURCE3} -t %{buildroot}%{_modprobedir}
-install -Dm0644 %{SOURCE4} -t %{buildroot}%{_presetdir}
-install -Dm0644 %{SOURCE5} -t %{buildroot}%{_sysusersdir}
-install -Dm0644 %{SOURCE6} -t %{buildroot}%{_unitdir}
+install -Dm0644 %{SOURCE4} -t %{buildroot}%{_udevrulesdir}
+install -Dm0644 %{SOURCE5} -t %{buildroot}%{_presetdir}
+install -Dm0644 %{SOURCE6} -t %{buildroot}%{_sysusersdir}
+install -Dm0644 %{SOURCE7} -t %{buildroot}%{_unitdir}
 
 jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_icd.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
 jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_layers.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
@@ -735,6 +737,7 @@ fi
 %{_unitdir}/*/nvidia-suspend-nofreeze.conf
 %{_unitdir}-sleep/*
 %{_presetdir}/*
+%{_udevrulesdir}/*
 %dir %{_datadir}/nvidia
 %dir %{_datadir}/nvidia/vulkan
 %{_datadir}/nvidia/nvidia-application-profiles-%{version}-rc
