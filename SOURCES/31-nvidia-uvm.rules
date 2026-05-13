@@ -1,2 +1,2 @@
-# Load nvidia-uvm module
+# Load nvidia-uvm module (Hack for newer nvidia driver)
 ACTION=="add", DEVPATH=="/bus/pci/drivers/nvidia", RUN+="/usr/bin/nvidia-modprobe -u -c 0"
