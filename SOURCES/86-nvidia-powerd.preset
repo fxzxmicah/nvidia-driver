@@ -1,0 +1,2 @@
+# NVIDIA Dynamic Boost service preset
+enable nvidia-powerd.service

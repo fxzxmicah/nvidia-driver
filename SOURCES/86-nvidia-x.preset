@@ -1,6 +1,5 @@
-# Nvidia Presets
+# NVIDIA Xorg sleep service presets
 enable nvidia-suspend.service
 enable nvidia-hibernate.service
 enable nvidia-resume.service
 enable nvidia-suspend-then-hibernate.service
-enable nvidia-powerd.service

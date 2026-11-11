@@ -1,0 +1,176 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag prefix
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    container: fedora:${{ github.ref_name }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Disable Repo
+        run: |
+          rm /usr/share/dnf5/repos.d/fedora-cisco-openh264.repo
+
+      - name: Install Repository Tools
+        run: dnf install -y createrepo_c jq
+
+      - name: Setup OSS Utility
+        id: ossutil
+        uses: fxzxzyra/setup-ossutil@v1
+        with:
+          endpoint: ${{ secrets.END_POINT }}
+          region: ${{ secrets.OSS_REGION }}
+          bucket: ${{ secrets.OSS_BUCKET }}
+          access-key-id: ${{ secrets.ACCESSKEY_ID }}
+          access-key-secret: ${{ secrets.ACCESSKEY_SECRET }}
+
+      - name: List GitHub Releases
+        id: repository
+        uses: actions/github-script@v9
+        with:
+          script: |
+            core.setOutput('releases', (await github.paginate(
+              github.rest.repos.listReleases,
+              {
+                ...context.repo,
+                per_page: 100
+              },
+              ({data}) => data
+                .filter(release => !release.draft && release.tag_name.endsWith(`.fc${process.env.GITHUB_REF_NAME}`))
+                .map(release => release.tag_name)
+            )).sort((a, b) => b.localeCompare(a, 'en', {numeric: true})).join('\n'));
+
+      - name: Select Release
+        id: target
+        env:
+          RELEASES: ${{ steps.repository.outputs.releases }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          release=$(printf '%s\n' "${RELEASES}" | jq -Rr --arg prefix "${VERSION}" 'select(startswith($prefix))' | head -n 1)
+          test -n "${release}"
+          echo "release=${release}" >> "${GITHUB_OUTPUT}"
+
+      - name: List OSS Files
+        id: remote
+        env: ${{ fromJSON(steps.ossutil.outputs.secrets) }}
+        run: |
+          objects=$(ossutil ls "oss://${OSS_BUCKET}/fedora-${GITHUB_REF_NAME}/repo/" --short-format)
+          {
+            printf 'files='
+            printf '%s\n' "${objects}" | jq -Rsc '
+              split("\n") | map(select(endswith(".rpm")) | split("/")[-1]) | unique
+            '
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: List GitHub Assets
+        id: local
+        uses: actions/github-script@v9
+        env:
+          RELEASES: ${{ steps.repository.outputs.releases }}
+        with:
+          script: |
+            const packages = [];
+            for (const release of process.env.RELEASES.split('\n')) {
+              const {data} = await github.rest.repos.getReleaseByTag({
+                ...context.repo,
+                tag: release
+              });
+              packages.push(...await github.paginate(
+                github.rest.repos.listReleaseAssets,
+                {
+                  ...context.repo,
+                  release_id: data.id,
+                  per_page: 100
+                },
+                ({data}) => data
+                  .filter(asset => asset.name.endsWith('.rpm'))
+                  .map(({id, name}) => ({id, name, release}))
+              ));
+            }
+            core.setOutput('assets', packages);
+
+      - name: Calculate Target Set
+        id: result
+        env:
+          ASSETS: ${{ steps.local.outputs.assets }}
+          FILES: ${{ steps.remote.outputs.files }}
+          RELEASE: ${{ steps.target.outputs.release }}
+        run: |
+          {
+            printf 'assets='
+            jq -cn --argjson local "${ASSETS}" --argjson remote "${FILES}" \
+              --arg target "${RELEASE}" '
+              reduce $local[] as $asset ({};
+                if has($asset.name) then . else .[$asset.name] = $asset end)
+              | with_entries(select(.key as $name | $remote | index($name)))
+              | reduce ($local[] | select(.release == $target)) as $asset (.; .[$asset.name] = $asset)
+              | [.[]] | sort_by(.name)
+            '
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Download GitHub Assets
+        uses: actions/github-script@v9
+        env:
+          ASSETS: ${{ steps.result.outputs.assets }}
+        with:
+          retries: 3
+          script: |
+            const fs = await import('node:fs/promises');
+            const {join} = await import('node:path');
+            for (const {id, name} of JSON.parse(process.env.ASSETS)) {
+              core.info(`Downloading ${name}`);
+              const {data} = await github.rest.repos.getReleaseAsset({
+                ...context.repo,
+                asset_id: id,
+                headers: {accept: 'application/octet-stream'},
+                request: {parseSuccessResponseBody: false}
+              });
+              const directory = join('REPO/repo', name.split('.').at(-2));
+              await fs.mkdir(directory, {recursive: true});
+              await fs.writeFile(join(directory, name), data);
+            }
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v7
+        id: gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Generate Metadata
+        env:
+          SIGNING_KEY: ${{ steps.gpg.outputs.fingerprint }}
+        run: |
+          . /etc/os-release
+          createrepo_c \
+            --distro="cpe:/o:fedoraproject:${ID}:${VERSION_ID},${NAME} ${VERSION_ID}" \
+            --content="region=cn" \
+            --repo="vendor=GitHub (${GITHUB_REPOSITORY}),visibility=internal" \
+            --revision="$(date +%Y%m%d.%H%M)" \
+            REPO
+          gpg --batch --yes --local-user "${SIGNING_KEY}" \
+            --armor --detach-sign REPO/repodata/repomd.xml
+          gpg --batch --yes --armor --export "${SIGNING_KEY}" > REPO/pubkey.gpg
+
+      - name: Sync Repository
+        env: ${{ fromJSON(steps.ossutil.outputs.secrets) }}
+        run: |
+          ossutil sync REPO/repo/ "oss://${OSS_BUCKET}/fedora-${GITHUB_REF_NAME}/repo/" --force --delete
+          ossutil sync REPO/repodata/ "oss://${OSS_BUCKET}/fedora-${GITHUB_REF_NAME}/repodata/" --force --delete
+          ossutil cp REPO/pubkey.gpg "oss://${OSS_BUCKET}/fedora-${GITHUB_REF_NAME}/pubkey.gpg" --force
