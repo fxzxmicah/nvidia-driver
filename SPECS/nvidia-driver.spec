@@ -13,7 +13,7 @@
 %define module_rel %{kernel_ver}.%{kernel_rel}
 
 %if %{sign_module}
-%define sign_tool %(gzip -c %{SOURCE9} | base64)
+%define sign_tool %(gzip -c %{SOURCE8} | base64)
 %endif
 
 %if %{open_module}
@@ -38,14 +38,13 @@ Source1:                https://us.download.nvidia.com/XFree86/Linux-%{_arch}/%{
 
 Source2:                nvidia.conf
 Source3:                60-nvidia.conf
-Source4:                31-nvidia-uvm.rules
-Source5:                86-nvidia-x.preset
-Source6:                86-nvidia-powerd.preset
-Source7:                nvidia-persistenced.conf
-Source8:                nvidia-persistenced.service
+Source4:                86-nvidia-x.preset
+Source5:                86-nvidia-powerd.preset
+Source6:                nvidia-persistenced.conf
+Source7:                nvidia-persistenced.service
 
 %if %{sign_module}
-Source9:                https://github.com/fxzxmic/sign-module/releases/download/v1.1.0/sign-module
+Source8:                https://github.com/fxzxmic/sign-module/releases/download/v1.1.0/sign-module
 %endif
 
 BuildRequires:          gcc
@@ -617,11 +616,10 @@ mv %{module_dir}/* %{buildroot}%{_prefix}/src/nvidia-%{version}
 
 install -Dm0644 %{SOURCE2} -t %{buildroot}%{_modprobedir}
 install -Dm0644 %{SOURCE3} -t %{buildroot}%{_prefix}/lib/dracut/dracut.conf.d
-install -Dm0644 %{SOURCE4} -t %{buildroot}%{_udevrulesdir}
+install -Dm0644 %{SOURCE4} -t %{buildroot}%{_presetdir}
 install -Dm0644 %{SOURCE5} -t %{buildroot}%{_presetdir}
-install -Dm0644 %{SOURCE6} -t %{buildroot}%{_presetdir}
-install -Dm0644 %{SOURCE7} -t %{buildroot}%{_sysusersdir}
-install -Dm0644 %{SOURCE8} -t %{buildroot}%{_unitdir}
+install -Dm0644 %{SOURCE6} -t %{buildroot}%{_sysusersdir}
+install -Dm0644 %{SOURCE7} -t %{buildroot}%{_unitdir}
 
 jq .ICD.library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_icd.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_icd.json
 jq .layers[0].library_path=\"libEGL_nvidia.so.0\" %{buildroot}%{_datadir}/nvidia/vulkan/nvidia_layers.json > %{buildroot}%{_datadir}/nvidia/vulkan/egl-nvidia_layers.json
@@ -765,7 +763,6 @@ fi
 %dir %{_datadir}/nvidia
 %dir %{_datadir}/nvidia/vulkan
 %{_datadir}/nvidia/nvidia-application-profiles-%{version}-rc
-%{_udevrulesdir}/31-nvidia-uvm.rules
 
 %files -n nvidia-gpu-firmware
 %defattr(-,root,root,-)
