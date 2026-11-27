@@ -97,7 +97,10 @@ jobs:
 
       - name: Install Build Tools
         if: steps.normal.outputs.build == 'true' || steps.rebuild.outputs.build == 'true'
-        run: dnf install -y rpmdevtools rpm-sign
+        run: |
+          # Temporary measures
+          dnf upgrade -y
+          dnf install -y rpmdevtools rpm-sign
 
       - name: Import GPG Key
         if: steps.normal.outputs.build == 'true' || steps.rebuild.outputs.build == 'true'
