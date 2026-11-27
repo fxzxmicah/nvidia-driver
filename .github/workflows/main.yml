@@ -185,6 +185,5 @@ jobs:
             await github.rest.repos.updateRelease({
               ...context.repo,
               release_id: data.id,
-              draft: false,
-              make_latest: 'false'
+              draft: false
             });
